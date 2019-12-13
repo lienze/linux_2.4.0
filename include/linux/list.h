@@ -138,6 +138,9 @@ static __inline__ void list_splice(struct list_head *list, struct list_head *hea
  * @type:	the type of the struct this is embedded in.
  * @member:	the name of the list_struct within the struct.
  */
+/*
+ * 通过指向entry结构中的成员指针，来获取指向entry结构本身的指针
+ */
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 

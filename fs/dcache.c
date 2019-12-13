@@ -713,6 +713,7 @@ static inline struct list_head * d_hash(struct dentry * parent, unsigned long ha
  
 struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 {
+	/* 函数主要负责搜索parent目录下的指定目录项，即参数name指定的目录项 */
 	unsigned int len = name->len;
 	unsigned int hash = name->hash;
 	const unsigned char *str = name->name;
@@ -723,6 +724,8 @@ struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 	tmp = head->next;
 	for (;;) {
 		struct dentry * dentry = list_entry(tmp, struct dentry, d_hash);
+		/* 如果当前tmp(dentry结构)指向head，说明当前目录搜索完毕但并没有找到 */
+		/* 目标dentry */
 		if (tmp == head)
 			break;
 		tmp = tmp->next;
@@ -730,6 +733,8 @@ struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 			continue;
 		if (dentry->d_parent != parent)
 			continue;
+		/* 对于某些文件系统，如果存在d_compare方法，则使用自己的规则进行 */
+		/* 比较，否则使用vfs默认的memcmp方法 */
 		if (parent->d_op && parent->d_op->d_compare) {
 			if (parent->d_op->d_compare(parent, &dentry->d_name, name))
 				continue;
@@ -740,6 +745,7 @@ struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 				continue;
 		}
 		__dget_locked(dentry);
+		/* 设置d_flags标志位中的DCACHE_REFERENCED位为1 */
 		dentry->d_flags |= DCACHE_REFERENCED;
 		spin_unlock(&dcache_lock);
 		return dentry;
