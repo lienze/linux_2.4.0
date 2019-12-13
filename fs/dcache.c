@@ -717,6 +717,7 @@ struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 	unsigned int len = name->len;
 	unsigned int hash = name->hash;
 	const unsigned char *str = name->name;
+	/* 根据hash值找到队列头指针 */
 	struct list_head *head = d_hash(parent,hash);
 	struct list_head *tmp;
 
@@ -744,6 +745,7 @@ struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 			if (memcmp(dentry->d_name.name, str, len))
 				continue;
 		}
+		/* 至此，通过前面的所有检查，找到目标目录项 */
 		__dget_locked(dentry);
 		/* 设置d_flags标志位中的DCACHE_REFERENCED位为1 */
 		dentry->d_flags |= DCACHE_REFERENCED;
