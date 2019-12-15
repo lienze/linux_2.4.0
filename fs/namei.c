@@ -270,6 +270,7 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, i
 	struct dentry * result;
 	struct inode *dir = parent->d_inode;
 
+	/* 此时进入临界区，这是因为建立过程不允许其他进程干扰。 */
 	down(&dir->i_sem);
 	/*
 	 * First re-do the cached lookup just in case it was created
@@ -278,8 +279,13 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, i
 	 * FIXME! This could use version numbering or similar to
 	 * avoid unnecessary cache lookups.
 	 */
+
+	/* 此时需要再次检查欲建立的dentry是否存在，这是因为在进入临界区时，当前  */
+	/* 进程可能会经历一段时间的睡眠等待，为了防止此时其他进程建立相同dentry，*/
+	/* 故此处再次检查。 */
 	result = d_lookup(parent, name);
 	if (!result) {
+		/* 首先建立一个dentry结构，并为之分配空间。 */
 		struct dentry * dentry = d_alloc(parent, name);
 		result = ERR_PTR(-ENOMEM);
 		if (dentry) {
