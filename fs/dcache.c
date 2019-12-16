@@ -598,6 +598,7 @@ void shrink_dcache_memory(int priority, unsigned int gfp_mask)
  
 struct dentry * d_alloc(struct dentry * parent, const struct qstr *name)
 {
+	/* 建立一个dentry结构，分配空间并初始化 */
 	char * str;
 	struct dentry *dentry;
 

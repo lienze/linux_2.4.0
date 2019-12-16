@@ -290,12 +290,13 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, i
 		result = ERR_PTR(-ENOMEM);
 		if (dentry) {
 			lock_kernel();
+			/* 在parent目录中，搜索名字为name的目录项。 */
 			result = dir->i_op->lookup(dir, dentry);
 			unlock_kernel();
 			if (result)
-				dput(dentry);
+				dput(dentry);/* 搜索失败，通过dput函数撤销。 */
 			else
-				result = dentry;
+				result = dentry;/* 搜索成功，设置返回。 */
 		}
 		up(&dir->i_sem);
 		return result;
