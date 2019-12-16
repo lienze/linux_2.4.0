@@ -654,6 +654,14 @@ struct inode * get_empty_inode(void)
  */
 static struct inode * get_new_inode(struct super_block *sb, unsigned long ino, struct list_head *head, find_inode_t find_actor, void *opaque)
 {
+	/*
+	 * 从磁盘读入相应索引节点并建立inode结构
+	 * sb: 指向超级块的指针
+	 * ino: 索引
+	 * head: FIXME
+	 * find_actor: FIXME
+	 * opaque: FIXME
+	 */
 	struct inode * inode;
 
 	inode = alloc_inode();
@@ -676,6 +684,7 @@ static struct inode * get_new_inode(struct super_block *sb, unsigned long ino, s
 			spin_unlock(&inode_lock);
 
 			clean_inode(inode);
+			/* 对于ext2文件系统而言，此处调用ext2_read_inode函数。 */
 			sb->s_op->read_inode(inode);
 
 			/*
@@ -773,12 +782,21 @@ struct inode *igrab(struct inode *inode)
 
 struct inode *iget4(struct super_block *sb, unsigned long ino, find_inode_t find_actor, void *opaque)
 {
+	/*
+	 * 根据索引节点号获取inode结构
+	 * sb: 指向超级块的指针
+	 * ino: 索引节点号
+	 * find_actor: FIXME
+	 * opaque: FIXME
+	 */
 	struct list_head * head = inode_hashtable + hash(sb,ino);
 	struct inode * inode;
 
 	spin_lock(&inode_lock);
+	/* 首先在Hash表中搜索节点 */
 	inode = find_inode(sb, ino, head, find_actor, opaque);
 	if (inode) {
+		/* 若搜索到了，增加inode计数 */
 		__iget(inode);
 		spin_unlock(&inode_lock);
 		wait_on_inode(inode);
@@ -790,6 +808,7 @@ struct inode *iget4(struct super_block *sb, unsigned long ino, find_inode_t find
 	 * get_new_inode() will do the right thing, re-trying the search
 	 * in case it had to block at any point.
 	 */
+	/* 未搜索到，新建inode结构 */
 	return get_new_inode(sb, ino, head, find_actor, opaque);
 }
 

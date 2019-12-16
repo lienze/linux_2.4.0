@@ -55,10 +55,11 @@
 /*
  * Special inodes numbers
  */
+// 特殊节点宏定义
 #define	EXT2_BAD_INO		 1	/* Bad blocks inode */
 #define EXT2_ROOT_INO		 2	/* Root inode */
-#define EXT2_ACL_IDX_INO	 3	/* ACL inode */
-#define EXT2_ACL_DATA_INO	 4	/* ACL inode */
+#define EXT2_ACL_IDX_INO	 3	/* ACL inode 访问控制表节点(access control list)的索引 */
+#define EXT2_ACL_DATA_INO	 4	/* ACL inode ACL的数据部分 */
 #define EXT2_BOOT_LOADER_INO	 5	/* Boot loader inode */
 #define EXT2_UNDEL_DIR_INO	 6	/* Undelete directory inode */
 
