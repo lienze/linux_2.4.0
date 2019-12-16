@@ -120,6 +120,9 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 		/* 此刻，开始对记录块中的内容进行搜索。 */
 		de = (struct ext2_dir_entry_2 *) bh->b_data;
 		dlimit = bh->b_data + sb->s_blocksize;
+		/* 变量de为指向目录项的指针，变量dlimit为当前记录块的最大地址 */
+		/* 搜索时不可以超越最大地址，另外，de每次移动，都指向下一个目 */
+		/* 录项的地址 */
 		while ((char *) de < dlimit) {
 			/* this code is executed quadratically often */
 			/* do minimal checking `by hand' */
