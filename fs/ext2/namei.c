@@ -61,6 +61,7 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 					     const char * const name, int namelen,
 					     struct ext2_dir_entry_2 ** res_dir)
 {
+	/* 从磁盘上找到并读入dir节点的目录项。 */
 	struct super_block * sb;
 	struct buffer_head * bh_use[NAMEI_RA_SIZE];
 	struct buffer_head * bh_read[NAMEI_RA_SIZE];
@@ -82,15 +83,18 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 			break;
 		bh = ext2_getblk (dir, block, 0, &err);
 		bh_use[block] = bh;
+		/* 如果存在缓冲区中的内容与磁盘上的内容不一致，那么将bh */
+		/* 记录到bh_read数组中，待后续从磁盘读入。 */
 		if (bh && !buffer_uptodate(bh))
 			bh_read[toread++] = bh;
 	}
-
+	/* 对目录文件中所有记录块循环搜索。 */
 	for (block = 0, offset = 0; offset < dir->i_size; block++) {
 		struct buffer_head * bh;
 		struct ext2_dir_entry_2 * de;
 		char * dlimit;
-
+		/* 每隔NAMEI_RA_BLOCKS(也就是8)个记录块，就启动一次磁盘读操作。 */
+		/* toread变量记录了真正要从磁盘读取记录块的数量。为0则直接跳过。 */
 		if ((block % NAMEI_RA_BLOCKS) == 0 && toread) {
 			ll_rw_block (READ, toread, bh_read);
 			toread = 0;
@@ -105,6 +109,7 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 			offset += sb->s_blocksize;
 			continue;
 		}
+		/* CPU等待读取的记录块。 */
 		wait_on_buffer (bh);
 		if (!buffer_uptodate(bh)) {
 			/*
@@ -112,7 +117,7 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 			 */
 			break;
 		}
-
+		/* 此刻，开始对记录块中的内容进行搜索。 */
 		de = (struct ext2_dir_entry_2 *) bh->b_data;
 		dlimit = bh->b_data + sb->s_blocksize;
 		while ((char *) de < dlimit) {
@@ -127,6 +132,8 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 				if (!ext2_check_dir_entry("ext2_find_entry",
 							  dir, de, bh, offset))
 					goto failure;
+				/* 搜索完毕且找到目录项后，释放缓冲区中的其他记录块。 */
+				/* 只保留目录项所在的记录块并当做返回值。 */
 				for (i = 0; i < NAMEI_RA_SIZE; ++i) {
 					if (bh_use[i] != bh)
 						brelse (bh_use[i]);
