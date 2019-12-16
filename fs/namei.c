@@ -291,6 +291,7 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, i
 		if (dentry) {
 			lock_kernel();
 			/* 在parent目录中，搜索名字为name的目录项。 */
+			/* 此时，对于ext2文件系统，lookup函数实际调用的是ext2_lookup */
 			result = dir->i_op->lookup(dir, dentry);
 			unlock_kernel();
 			if (result)

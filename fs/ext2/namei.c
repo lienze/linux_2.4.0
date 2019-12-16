@@ -169,16 +169,20 @@ static struct dentry *ext2_lookup(struct inode * dir, struct dentry *dentry)
 	if (dentry->d_name.len > EXT2_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
 
+	/* 在磁盘上找到并读入当前节点的目录项 */
 	bh = ext2_find_entry (dir, dentry->d_name.name, dentry->d_name.len, &de);
 	inode = NULL;
 	if (bh) {
+		/* 获得索引节点号 */
 		unsigned long ino = le32_to_cpu(de->inode);
 		brelse (bh);
+		/* 根据索引节点号获得相应节点并建立inode结构 */
 		inode = iget(dir->i_sb, ino);
 
 		if (!inode)
 			return ERR_PTR(-EACCES);
 	}
+	/* 完成dentry结构的设置并挂入hash表中 */
 	d_add(dentry, inode);
 	return NULL;
 }
