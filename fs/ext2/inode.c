@@ -1001,6 +1001,8 @@ void ext2_read_inode (struct inode * inode)
 		EXT2_INODE_SIZE(inode->i_sb);
 	block = le32_to_cpu(gdp[desc].bg_inode_table) +
 		(offset >> EXT2_BLOCK_SIZE_BITS(inode->i_sb));
+	/* 通过驱动程序读取磁盘上的原始数据，在后续操作中，内核会将原始数据 */
+	/* 分成两部分，一部分属于VFS层，一部分属于具体的文件系统。 */
 	if (!(bh = bread (inode->i_dev, block, inode->i_sb->s_blocksize))) {
 		ext2_error (inode->i_sb, "ext2_read_inode",
 			    "unable to read inode block - "
