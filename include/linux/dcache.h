@@ -199,7 +199,9 @@ extern void d_rehash(struct dentry *);
  
 static __inline__ void d_add(struct dentry * entry, struct inode * inode)
 {
+	// 将dentry与inode结构挂钩。
 	d_instantiate(entry, inode);
+	// 将dentry结构挂入dentry_hashtable中。
 	d_rehash(entry);
 }
 

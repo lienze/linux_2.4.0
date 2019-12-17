@@ -508,6 +508,7 @@ int path_walk(const char * name, struct nameidata *nd)
 				break;
 		}
 		/* Check mountpoints.. */
+		/* 检查dentry是否为安装点。__follow_down前进到安装设备到根节点。 */
 		while (d_mountpoint(dentry) && __follow_down(&nd->mnt, &dentry))
 			;
 
@@ -520,6 +521,7 @@ int path_walk(const char * name, struct nameidata *nd)
 			goto out_dput;
 
 		if (inode->i_op->follow_link) {
+			/* 如果此文件系统支持连接，则继续处理。 */
 			err = do_follow_link(dentry, nd);
 			dput(dentry);
 			if (err)
@@ -532,6 +534,7 @@ int path_walk(const char * name, struct nameidata *nd)
 			if (!inode->i_op)
 				break;
 		} else {
+			/* 若不支持连接，则当前找到的dentry即为结果。 */
 			dput(nd->dentry);
 			nd->dentry = dentry;
 		}
