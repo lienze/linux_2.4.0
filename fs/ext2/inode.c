@@ -977,6 +977,7 @@ void ext2_read_inode (struct inode * inode)
 			    "bad inode number: %lu", inode->i_ino);
 		goto bad_inode;
 	}
+	/* 根据索引节点号计算节点所在块组号 */
 	block_group = (inode->i_ino - 1) / EXT2_INODES_PER_GROUP(inode->i_sb);
 	if (block_group >= inode->i_sb->u.ext2_sb.s_groups_count) {
 		ext2_error (inode->i_sb, "ext2_read_inode",
