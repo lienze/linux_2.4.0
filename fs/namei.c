@@ -320,6 +320,7 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, i
 static inline int do_follow_link(struct dentry *dentry, struct nameidata *nd)
 {
 	int err;
+	/* 对循环连接链的限制为8，不然会陷入循环。 */
 	if (current->link_count >= 8)
 		goto loop;
 	current->link_count++;
