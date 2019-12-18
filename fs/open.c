@@ -690,6 +690,7 @@ int get_unused_fd(void)
 	write_lock(&files->file_lock);
 
 repeat:
+	/* 从当前进程的打开列表中找到一个空闲表项。 */
  	fd = find_next_zero_bit(files->open_fds, 
 				files->max_fdset, 
 				files->next_fd);
