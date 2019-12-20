@@ -720,6 +720,7 @@ int path_init(const char *name, unsigned int flags, struct nameidata *nd)
  */
 struct dentry * lookup_hash(struct qstr *name, struct dentry * base)
 {
+	/* 寻找目标文件的dentry结构。 */
 	struct dentry * dentry;
 	struct inode *inode;
 	int err;
@@ -950,17 +951,23 @@ exit_lock:
  */
 int open_namei(const char * pathname, int flag, int mode, struct nameidata *nd)
 {
+	/*
+	 * 开启nameidata结构，临时文件，用于搜索目录及目录项。
+	 */
 	int acc_mode, error = 0;
 	struct inode *inode;
 	struct dentry *dentry;
 	struct dentry *dir;
 	int count = 0;
 
+	/* 对宏ACC_MODE展开，acc_mode = ("\000\004\002\006"[(flag)&O_ACCMODE]) */
 	acc_mode = ACC_MODE(flag);
 
 	/*
 	 * The simplest case - just a plain lookup.
 	 */
+	/* 如果O_CREAT位为0，即该行为仅找目标文件但不创建文件，那么只需 */
+	/* 使用path_init与path_walk查找即可。 */
 	if (!(flag & O_CREAT)) {
 		if (path_init(pathname, lookup_flags(flag), nd))
 			error = path_walk(pathname, nd);
@@ -1000,6 +1007,7 @@ do_last:
 
 	/* Negative dentry, just create the file */
 	if (!dentry->d_inode) {
+		/* 目标文件不存在，通过vfs_create创建。 */
 		error = vfs_create(dir->d_inode, dentry, mode);
 		up(&dir->d_inode->i_sem);
 		dput(nd->dentry);
@@ -1021,15 +1029,19 @@ do_last:
 	if (flag & O_EXCL)
 		goto exit_dput;
 
+	/* 有可能是个安装点，需要进行检查。 */
 	if (d_mountpoint(dentry)) {
 		error = -ELOOP;
 		if (flag & O_NOFOLLOW)
 			goto exit_dput;
+		/* 通过__follow_down函数进入所安装的文件系统中。 */
 		do __follow_down(&nd->mnt,&dentry); while(d_mountpoint(dentry));
 	}
 	error = -ENOENT;
 	if (!dentry->d_inode)
 		goto exit_dput;
+	/* 判断当前节点是否为符号链接，若为符号连接，则follow_link函数不为空， */
+	/* 初始化代码见fs/ext2/symlink.c */
 	if (dentry->d_inode->i_op && dentry->d_inode->i_op->follow_link)
 		goto do_link;
 
@@ -1145,12 +1157,14 @@ do_link:
 		goto ok;
 	}
 	error = -EISDIR;
+	/* 此处仍然要判断节点是否为目录而不是文件。 */
 	if (nd->last_type != LAST_NORM)
 		goto exit;
 	if (nd->last.name[nd->last.len]) {
 		putname(nd->last.name);
 		goto exit;
 	}
+	/* 防止无穷无尽的循环，这里限制32为最大循环次数。 */
 	if (count++==32) {
 		dentry = nd->dentry;
 		putname(nd->last.name);
