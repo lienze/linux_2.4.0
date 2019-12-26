@@ -910,12 +910,18 @@ static inline int lookup_flags(unsigned int f)
 
 int vfs_create(struct inode *dir, struct dentry *dentry, int mode)
 {
+	/*
+	 * 创建文件。
+	 * @dir: 指向将要创建的文件的所在目录。
+	 * @dentry: 指向待创建文件的dentry结构。
+	 */
 	int error;
-
+	/* 根据参数mode和进程umask确定访问模式。 */
 	mode &= S_IALLUGO & ~current->fs->umask;
 	mode |= S_IFREG;
 
 	down(&dir->i_zombie);
+	/* 检查当前进程的权限。 */
 	error = may_create(dir, dentry);
 	if (error)
 		goto exit_lock;
@@ -1115,7 +1121,7 @@ ok:
 		error = locks_verify_locked(inode);
 		if (!error) {
 			DQUOT_INIT(inode);
-			
+			/* 通过do_truncate执行截尾。 */
 			error = do_truncate(dentry, 0);
 		}
 		put_write_access(inode);

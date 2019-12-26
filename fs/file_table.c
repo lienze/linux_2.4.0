@@ -30,6 +30,9 @@ spinlock_t files_lock = SPIN_LOCK_UNLOCKED;
  */
 struct file * get_empty_filp(void)
 {
+	/*
+	 * 在内核维护的队列free_list中分配一个空闲的file结构。
+	 */
 	static int old_max = 0;
 	struct file * f;
 

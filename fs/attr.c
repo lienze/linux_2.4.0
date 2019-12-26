@@ -78,6 +78,7 @@ void inode_setattr(struct inode * inode, struct iattr * attr)
 		if (!in_group_p(inode->i_gid) && !capable(CAP_FSETID))
 			inode->i_mode &= ~S_ISGID;
 	}
+	/* 将当前inode结构标记为脏数据，为后续更新做准备。 */
 	mark_inode_dirty(inode);
 }
 
@@ -105,6 +106,11 @@ static int setattr_mask(unsigned int ia_valid)
 
 int notify_change(struct dentry * dentry, struct iattr * attr)
 {
+	/*
+	 * 改变inode结构中的一些数据。
+	 * @dentry: 指向dentry结构的指针。
+	 * @attr: 
+	 */
 	struct inode *inode = dentry->d_inode;
 	int error;
 	time_t now = CURRENT_TIME;

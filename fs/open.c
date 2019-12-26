@@ -71,6 +71,11 @@ out:
 
 int do_truncate(struct dentry *dentry, loff_t length)
 {
+	/*
+	 * 对文件进行截尾操作。
+	 * dentry: 
+	 * length: 截尾后留下的长度。
+	 */
 	struct inode *inode = dentry->d_inode;
 	int error;
 	struct iattr newattrs;
@@ -82,6 +87,7 @@ int do_truncate(struct dentry *dentry, loff_t length)
 	down(&inode->i_sem);
 	newattrs.ia_size = length;
 	newattrs.ia_valid = ATTR_SIZE | ATTR_CTIME;
+	/* do_truncate函数的主体，也就是notify_change函数。 */
 	error = notify_change(dentry, &newattrs);
 	up(&inode->i_sem);
 	return error;
@@ -631,11 +637,15 @@ struct file *filp_open(const char * filename, int flags, int mode)
 
 struct file *dentry_open(struct dentry *dentry, struct vfsmount *mnt, int flags)
 {
+	/*
+	 * 建立目标文件的一个上下文，并将此上下文与当前进程挂钩。
+	 */
 	struct file * f;
 	struct inode *inode;
 	int error;
 
 	error = -ENFILE;
+	/* 首先分配一个空闲的file数据结构。 */
 	f = get_empty_filp();
 	if (!f)
 		goto cleanup_dentry;
@@ -643,6 +653,7 @@ struct file *dentry_open(struct dentry *dentry, struct vfsmount *mnt, int flags)
 	f->f_mode = (flags+1) & O_ACCMODE;
 	inode = dentry->d_inode;
 	if (f->f_mode & FMODE_WRITE) {
+		/* 检查文件是否因可写。 */
 		error = get_write_access(inode);
 		if (error)
 			goto cleanup_file;
@@ -652,10 +663,12 @@ struct file *dentry_open(struct dentry *dentry, struct vfsmount *mnt, int flags)
 	f->f_vfsmnt = mnt;
 	f->f_pos = 0;
 	f->f_reada = 0;
+	/* 获取当前文件所指向inode节点的fop操作函数的指针。 */
 	f->f_op = fops_get(inode->i_fop);
 	if (inode->i_sb)
 		file_move(f, &inode->i_sb->s_files);
 	if (f->f_op && f->f_op->open) {
+		/* 正式开始打开文件，这里根据不同的文件系统有不同的操作。 */
 		error = f->f_op->open(inode,f);
 		if (error)
 			goto cleanup_all;
@@ -754,10 +767,12 @@ asmlinkage long sys_open(const char * filename, int flags, int mode)
 	if (!IS_ERR(tmp)) {
 		fd = get_unused_fd();
 		if (fd >= 0) {
+			/* 打开文件并返回指向文件的指针。 */
 			struct file *f = filp_open(tmp, flags, mode);
 			error = PTR_ERR(f);
 			if (IS_ERR(f))
 				goto out_error;
+			/* 将新建的指向文件结构的指针，安装到当前进程的file_struct结构中。 */
 			fd_install(fd, f);
 		}
 out:
