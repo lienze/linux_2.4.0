@@ -881,6 +881,7 @@ static inline int may_delete(struct inode *dir,struct dentry *victim, int isdir)
 static inline int may_create(struct inode *dir, struct dentry *child) {
 	if (child->d_inode)
 		return -EEXIST;
+	/* 检查目录dir是否被删除。 */
 	if (IS_DEADDIR(dir))
 		return -ENOENT;
 	return permission(dir,MAY_WRITE | MAY_EXEC);
@@ -927,6 +928,7 @@ int vfs_create(struct inode *dir, struct dentry *dentry, int mode)
 		goto exit_lock;
 
 	error = -EACCES;	/* shouldn't it be ENOSYS? */
+	/* 文件系统必须提供create函数的实现。 */
 	if (!dir->i_op || !dir->i_op->create)
 		goto exit_lock;
 
