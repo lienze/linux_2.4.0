@@ -523,8 +523,8 @@ extern spinlock_t files_lock;
 
 extern int init_private_file(struct file *, struct dentry *, int);
 
-#define FL_POSIX	1
-#define FL_FLOCK	2
+#define FL_POSIX	1	/* 通过fcntl系统调用上锁，协调锁或强制锁。 */
+#define FL_FLOCK	2	/* 锁是通过flock系统调用加上的，为协调锁。只对整个文件上锁。 */
 #define FL_BROKEN	4	/* broken flock() emulation */
 #define FL_ACCESS	8	/* for processes suspended by mandatory locking */
 #define FL_LOCKD	16	/* lock held by rpc.lockd */
@@ -549,8 +549,8 @@ struct file_lock {
 	struct file *fl_file;
 	unsigned char fl_flags;
 	unsigned char fl_type;
-	loff_t fl_start;
-	loff_t fl_end;
+	loff_t fl_start;// 指出加锁文件区间的开始位置。
+	loff_t fl_end;  // 指出加锁文件区间的结束位置。
 
 	void (*fl_notify)(struct file_lock *);	/* unblock callback */
 	void (*fl_insert)(struct file_lock *);	/* lock insertion callback */
