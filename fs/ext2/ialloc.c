@@ -366,6 +366,7 @@ repeat:
 		goto fail;
 
 	err = -EIO;
+	/* 变量i表示块组号。 */
 	bitmap_nr = load_inode_bitmap (sb, i);
 	if (bitmap_nr < 0)
 		goto fail;
@@ -374,13 +375,18 @@ repeat:
 	if ((j = ext2_find_first_zero_bit ((unsigned long *) bh->b_data,
 				      EXT2_INODES_PER_GROUP(sb))) <
 	    EXT2_INODES_PER_GROUP(sb)) {
+		/* 测试位图中的j位是否为1。不为1则设置成1，返回设置成功，否则返回失败。 */
 		if (ext2_set_bit (j, bh->b_data)) {
 			ext2_error (sb, "ext2_new_inode",
 				      "bit already set for inode %d", j);
+			/* j表示所分配的索引节点在当前块组中的序号。若j位为1，说明存在 */
+			/* 冲突，需要重新寻找可用位。 */
 			goto repeat;
 		}
+		/* 索引节点分配成功了，标记索引节点所在记录块标记为脏。 */
 		mark_buffer_dirty(bh);
 		if (sb->s_flags & MS_SYNCHRONOUS) {
+			/* 立即将记录块协会磁盘设备，调用驱动层代码ll_rw_block。 */
 			ll_rw_block (WRITE, 1, &bh);
 			wait_on_buffer (bh);
 		}
@@ -445,6 +451,7 @@ repeat:
 	inode->u.ext2_i.i_block_group = i;
 	if (inode->u.ext2_i.i_flags & EXT2_SYNC_FL)
 		inode->i_flags |= S_SYNC;
+	/* 将新建的inode结构，链入内核维护的inode_hashtable中。 */
 	insert_inode_hash(inode);
 	inode->i_generation = event++;
 	mark_inode_dirty(inode);

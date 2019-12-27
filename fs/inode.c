@@ -823,6 +823,8 @@ struct inode *iget4(struct super_block *sb, unsigned long ino, find_inode_t find
 void insert_inode_hash(struct inode *inode)
 {
 	struct list_head *head = &anon_hash_chain;
+	/* 将inode所在块组的super_block地址也加入到hash值当中，保证 */
+	/* 节点在当前设备的hash值唯一。 */
 	if (inode->i_sb)
 		head = inode_hashtable + hash(inode->i_sb, inode->i_ino);
 	spin_lock(&inode_lock);
