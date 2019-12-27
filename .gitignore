@@ -53,3 +53,4 @@ dkms.conf
 
 cscope*
 tags
+*.swp
