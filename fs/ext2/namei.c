@@ -375,16 +375,18 @@ static int ext2_delete_entry (struct inode * dir,
  */
 static int ext2_create (struct inode * dir, struct dentry * dentry, int mode)
 {
+	/* 首先创建一个inode结构。 */
 	struct inode * inode = ext2_new_inode (dir, mode);
 	int err = PTR_ERR(inode);
 	if (IS_ERR(inode))
 		return err;
-
+	/* 为新建的inode初始化操作指针和file结构指针。 */
 	inode->i_op = &ext2_file_inode_operations;
 	inode->i_fop = &ext2_file_operations;
 	inode->i_mapping->a_ops = &ext2_aops;
 	inode->i_mode = mode;
 	mark_inode_dirty(inode);
+	/* 接着要在新创建文件所在目录中写入新的目录项。 */
 	err = ext2_add_entry (dir, dentry->d_name.name, dentry->d_name.len, 
 			     inode);
 	if (err) {
@@ -393,6 +395,7 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, int mode)
 		iput (inode);
 		return err;
 	}
+	/* dentry结构与inode结构挂钩。 */
 	d_instantiate(dentry, inode);
 	return 0;
 }
