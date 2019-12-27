@@ -813,6 +813,7 @@ int filp_close(struct file *filp, fl_owner_t id)
 	}
 	retval = 0;
 	if (filp->f_op && filp->f_op->flush) {
+		/* 对于ext2系统而言，flush为空指针，即在关闭时，不进行会写到设备。 */
 		lock_kernel();
 		retval = filp->f_op->flush(filp);
 		unlock_kernel();
