@@ -819,7 +819,9 @@ int filp_close(struct file *filp, fl_owner_t id)
 		unlock_kernel();
 	}
 	fcntl_dirnotify(0, filp, 0);
+	/* 尝试关闭posix锁。 */
 	locks_remove_posix(filp, id);
+	/* 递减file结构中的共享计数，若共享计数到达0，则释放file结构。 */
 	fput(filp);
 	return retval;
 }
