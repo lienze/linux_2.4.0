@@ -2378,11 +2378,13 @@ retry:
 static inline struct page * __grab_cache_page(struct address_space *mapping,
 				unsigned long index, struct page **cached_page)
 {
+	/* 由于页面在文件中的逻辑序号并不唯一，所以加入mapping的地址计算hash值。 */
 	struct page *page, **hash = page_hash(mapping, index);
 repeat:
 	page = __find_lock_page(mapping, index, hash);
 	if (!page) {
 		if (!*cached_page) {
+			/* 在hash队列中没有找到目标页面，则新分配一个空闲页面。 */
 			*cached_page = page_cache_alloc();
 			if (!*cached_page)
 				return NULL;
@@ -2501,8 +2503,11 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		 * Try to find the page in the cache. If it isn't there,
 		 * allocate a free page.
 		 */
+		/* 计算当前位置pos在页面中的偏移量。 */
 		offset = (pos & (PAGE_CACHE_SIZE -1)); /* Within page */
+		/* 与整除2的12次幂是等价的，但是速度更快。 */
 		index = pos >> PAGE_CACHE_SHIFT;
+		/* 计算页面内剩余字节数。 */
 		bytes = PAGE_CACHE_SIZE - offset;
 		if (bytes > count) {
 			bytes = count;
@@ -2521,6 +2526,7 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		}
 
 		status = -ENOMEM;	/* we'll assign it later anyway */
+		/* 通过__grab_cache_page函数找到缓冲页面。 */
 		page = __grab_cache_page(mapping, index, &cached_page);
 		if (!page)
 			break;

@@ -182,6 +182,7 @@ extern int * max_segments[MAX_BLKDEV];
 #define PageAlignSize(size) (((size) + PAGE_SIZE -1) & PAGE_MASK)
 
 /* read-ahead in pages.. */
+// 最大预读31个页面，也就是124K字节
 #define MAX_READAHEAD	31
 #define MIN_READAHEAD	3
 
