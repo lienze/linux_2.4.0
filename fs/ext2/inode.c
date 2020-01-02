@@ -511,6 +511,7 @@ static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *
 	Indirect *partial;
 	unsigned long goal;
 	int left;
+	/* 首先确定当前要获取的记录块落在哪个区间。 */
 	int depth = ext2_block_to_path(inode, iblock, offsets);
 
 	if (depth == 0)
