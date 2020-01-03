@@ -172,6 +172,13 @@ static inline int verify_chain(Indirect *from, Indirect *to)
 
 static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 {
+	/*
+	 * 对索引节点inode进行搜索，找到第i_block个记录块的位置，并放置于
+	 * offsets数组返回。
+	 */
+
+	/* 首先计算在出当前文件系统配置下，一个记录块，可以包含多少个 */
+	/* 指向记录块的地址。 */
 	int ptrs = EXT2_ADDR_PER_BLOCK(inode->i_sb);
 	int ptrs_bits = EXT2_ADDR_PER_BLOCK_BITS(inode->i_sb);
 	const long direct_blocks = EXT2_NDIR_BLOCKS,
@@ -198,6 +205,7 @@ static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 	} else {
 		ext2_warning (inode->i_sb, "ext2_block_to_path", "block > big");
 	}
+	/* 返回值n为0表示出错，在寻找记录块位置时，n至少为1。 */
 	return n;
 }
 
@@ -519,6 +527,7 @@ static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *
 
 	lock_kernel();
 reread:
+	/* 从磁盘上逐个读入简介映射的记录块。 */
 	partial = ext2_get_branch(inode, depth, offsets, chain, &err);
 
 	/* Simplest case - block found, no allocation needed */
