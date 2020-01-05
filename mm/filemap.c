@@ -2494,6 +2494,7 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		mark_inode_dirty_sync(inode);
 	}
 
+	/* 变量count为写入多少字节。 */
 	while (count) {
 		unsigned long bytes, index, offset;
 		char *kaddr;

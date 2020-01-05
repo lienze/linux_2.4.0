@@ -255,6 +255,7 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 	if (!p->key)
 		goto no_block;
 	while (--depth) {
+		/* 调用驱动层函数bread，读取第p->key个逻辑位置的记录块。 */
 		bh = bread(dev, le32_to_cpu(p->key), size);
 		if (!bh)
 			goto failure;
@@ -266,6 +267,8 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 		if (!p->key)
 			goto no_block;
 	}
+	/* 至此，成功获取映射链，返回NULL； */
+	/* 映射链保存在chain[4]数组中。 */
 	return NULL;
 
 changed:
@@ -274,6 +277,7 @@ changed:
 failure:
 	*err = -EIO;
 no_block:
+	/* 返回指针p，表示映射链在此断裂。 */
 	return p;
 }
 
@@ -527,11 +531,13 @@ static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *
 
 	lock_kernel();
 reread:
-	/* 从磁盘上逐个读入简介映射的记录块。 */
+	/* 从磁盘上逐个读入间接映射的记录块。 */
 	partial = ext2_get_branch(inode, depth, offsets, chain, &err);
 
 	/* Simplest case - block found, no allocation needed */
 	if (!partial) {
+		/* ext2_get_branch的返回值partial为空，说明顺利完成映射。 */
+		/* 接下来要对缓冲区结构bh_result进行映射结果的设置。 */
 got_it:
 		bh_result->b_dev = inode->i_dev;
 		bh_result->b_blocknr = le32_to_cpu(chain[depth-1].key);
@@ -541,6 +547,8 @@ got_it:
 		goto cleanup;
 	}
 
+	/* ext2_get_branch返回值partial非空，则说明映射链 */
+	/* 在此处断裂，接下来进行必要的清理工作。 */
 	/* Next simple case - plain lookup or failed read of indirect block */
 	if (!create || err == -EIO) {
 cleanup:
