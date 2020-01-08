@@ -131,9 +131,10 @@ struct file * fget(unsigned int fd)
 	struct files_struct *files = current->files;
 
 	read_lock(&files->file_lock);
+	/* 检查当前fd是否超出进程允许的文件号的最大值。 */
 	file = fcheck(fd);
 	if (file)
-		get_file(file);
+		get_file(file);// get_file仅增加文件的引用计数。
 	read_unlock(&files->file_lock);
 	return file;
 }

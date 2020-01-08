@@ -147,15 +147,21 @@ asmlinkage ssize_t sys_write(unsigned int fd, const char * buf, size_t count)
 	struct file * file;
 
 	ret = -EBADF;
+	/* fget函数根据文件号fd，找到已经打开的file结构。 */
 	file = fget(fd);
 	if (file) {
+		/* 首先判断文件打开模式中存在可写标志，再继续向下执行。 */
 		if (file->f_mode & FMODE_WRITE) {
 			struct inode *inode = file->f_dentry->d_inode;
+			/* 检查文件的当前位置file->f_pos开始count个字节，是否加上了强制锁。 */
 			ret = locks_verify_area(FLOCK_VERIFY_WRITE, inode, file,
 				file->f_pos, count);
 			if (!ret) {
+				/* 声明一个函数指针write。 */
 				ssize_t (*write)(struct file *, const char *, size_t, loff_t *);
 				ret = -EINVAL;
+				/* VFS在这里将调用各个文件系统实现的写操作函数。 */
+				/* 对于ext2文件系统调用的函数为generic_file_write。 */
 				if (file->f_op && (write = file->f_op->write) != NULL)
 					ret = write(file, buf, count, &file->f_pos);
 			}

@@ -414,6 +414,7 @@ struct inode {
 	wait_queue_head_t	i_wait;
 	struct file_lock	*i_flock;
 	struct address_space	*i_mapping;
+	// 通常i_mapping指针指向接下来的这个变量i_data。
 	struct address_space	i_data;	
 	struct dquot		*i_dquot[MAXQUOTAS];
 	struct pipe_inode_info	*i_pipe;
@@ -504,6 +505,7 @@ struct file {
 	unsigned int 		f_flags;
 	mode_t			f_mode;
 	loff_t			f_pos;
+	// 预读系列变脸，ra前缀代表read ahead。
 	unsigned long 		f_reada, f_ramax, f_raend, f_ralen, f_rawin;
 	struct fown_struct	f_owner;
 	unsigned int		f_uid, f_gid;
@@ -907,6 +909,8 @@ static inline int locks_verify_area(int read_write, struct inode *inode,
 				    struct file *filp, loff_t offset,
 				    size_t count)
 {
+	// 检查是否加锁了，以及文件是否允许加锁，若都满足，说明当前
+	// 文件有可能加入了强制锁，继续检查。
 	if (inode->i_flock && MANDATORY_LOCK(inode))
 		return locks_mandatory_area(read_write, inode, filp, offset, count);
 	return 0;
