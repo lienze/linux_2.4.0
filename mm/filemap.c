@@ -2491,9 +2491,11 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 	if (count) {
 		remove_suid(inode);
 		inode->i_ctime = inode->i_mtime = CURRENT_TIME;
+		/* 标记该inode结构为脏数据，待后续写回设备中。 */
 		mark_inode_dirty_sync(inode);
 	}
 
+	/* 接下来进入写操作的主体部分。 */
 	/* 变量count为写入多少字节。 */
 	while (count) {
 		unsigned long bytes, index, offset;
@@ -2505,6 +2507,7 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		 * allocate a free page.
 		 */
 		/* 计算当前位置pos在页面中的偏移量。 */
+		/* 宏PAGE_CACHE_SIZE为4K，即为2^12。 */
 		offset = (pos & (PAGE_CACHE_SIZE -1)); /* Within page */
 		/* 与整除2的12次幂是等价的，但是速度更快。 */
 		index = pos >> PAGE_CACHE_SHIFT;
