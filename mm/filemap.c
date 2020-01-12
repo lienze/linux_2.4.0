@@ -2385,6 +2385,7 @@ repeat:
 	if (!page) {
 		if (!*cached_page) {
 			/* 在hash队列中没有找到目标页面，则新分配一个空闲页面。 */
+			/* 当然，这个缓冲页面也可以由调用者手动指定。 */
 			*cached_page = page_cache_alloc();
 			if (!*cached_page)
 				return NULL;
@@ -2514,6 +2515,8 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		/* 计算页面内剩余字节数。 */
 		bytes = PAGE_CACHE_SIZE - offset;
 		if (bytes > count) {
+			/* 如果当前剩余字节数大于要写入的字节数，说明当前页面为 */
+			/* 要申请使用的最后一个页面，之后不需要再申请页面了。 */
 			bytes = count;
 			deactivate = 0;
 		}
@@ -2540,6 +2543,8 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 			PAGE_BUG(page);
 		}
 
+		/* 在开始写入之前，还要进行准备工作，根据不同的文件系统而言， */
+		/* 调用不同的函数。ext2文件系统调用ext2_get_block()。 */
 		status = mapping->a_ops->prepare_write(file, page, offset, offset+bytes);
 		if (status)
 			goto unlock;

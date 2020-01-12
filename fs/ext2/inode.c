@@ -517,6 +517,10 @@ changed:
 
 static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *bh_result, int create)
 {
+	/*
+	 * 函数主要为了确定从文件内逻辑块号到设备中物理块号之间到映射问题。
+	 * @iblock: 指将要处理到记录块在文件爱你中国女的逻辑块号。
+	 */
 	int err = -EIO;
 	int offsets[4];
 	Indirect chain[4];

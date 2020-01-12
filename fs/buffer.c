@@ -1557,6 +1557,12 @@ out:
 static int __block_prepare_write(struct inode *inode, struct page *page,
 		unsigned from, unsigned to, get_block_t *get_block)
 {
+	/*
+	 * 准备写操作之前，进行的准备。
+	 * @inode: 指向inode结构的指针。
+	 * @page: 指向准备写入的缓冲页。
+	 * @get_block: 对于ext2文件系统，该函数指针指向函数ext2_get_block。
+	 */
 	unsigned block_start, block_end;
 	unsigned long block;
 	int err = 0;
@@ -1564,6 +1570,7 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 	struct buffer_head *bh, *head, *wait[2], **wait_bh=wait;
 	char *kaddr = kmap(page);
 
+	/* 首先根据超级块中的信息，提取当前文件系统下的记录块大小。 */
 	blocksize = inode->i_sb->s_blocksize;
 	if (!page->buffers)
 		create_empty_buffers(page, inode->i_dev, blocksize);
