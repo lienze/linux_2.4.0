@@ -278,7 +278,7 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 			goto changed;
 		add_chain(++p, bh, (u32*)bh->b_data + *++offsets);
 		/* Reader: end */
-		if (!p->key)
+		if (!p->key)	// 此时说明当前记录块并不存在。写文件时需要扩充。
 			goto no_block;
 	}
 	/* 至此，成功获取映射链，返回NULL； */
@@ -587,6 +587,7 @@ out:
 	if (err == -EAGAIN)
 		goto changed;
 
+	/* 由于映射链断裂，所以此时需要为目标记录块找一个空闲块。 */
 	if (ext2_find_goal(inode, iblock, chain, partial, &goal) < 0)
 		goto changed;
 
