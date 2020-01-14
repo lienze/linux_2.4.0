@@ -185,11 +185,13 @@ static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 	const long direct_blocks = EXT2_NDIR_BLOCKS,
 		indirect_blocks = ptrs,
 		double_blocks = (1 << (ptrs_bits * 2));
+	/* 变量n记录映射次数，在本次搜索映射中，n至少为1，若函数返回0，表示出错。 */
 	int n = 0;
 
 	if (i_block < 0) {
 		ext2_warning (inode->i_sb, "ext2_block_to_path", "block < 0");
 	} else if (i_block < direct_blocks) {
+		/* 12以内，使用直接映射。 */
 		offsets[n++] = i_block;
 	} else if ( (i_block -= direct_blocks) < indirect_blocks) {
 		offsets[n++] = EXT2_IND_BLOCK;
@@ -245,13 +247,23 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 					Indirect chain[4],
 					int *err)
 {
+	/*
+	 * 函数将根据offsets数组中的指针，逐次将记录载入内存。
+	 * @depth: 映射深度
+	 * @offsets: 映射记录，其中存储了ext2_block_to_path的搜索结果
+	 * @chain[4]: 记录结果的数组
+	 * @err: 记录执行过程中的错误，可带回函数外部
+	 */
 	kdev_t dev = inode->i_dev;
 	int size = inode->i_sb->s_blocksize;
+	/* chain结构，其中包含的bh指针，指向从设备读入的原始数据。 */
 	Indirect *p = chain;
 	struct buffer_head *bh;
 
 	*err = 0;
 	/* i_data is not going away, no lock needed */
+	/* 先将第一个映射挂入chain数组的第一个位置，包括值与i_data中的地址。 */
+	/* 此时第二个参数为NULL，因为直接映射不需要载入记录块。 */
 	add_chain (chain, NULL, inode->u.ext2_i.i_data + *offsets);
 	if (!p->key)
 		goto no_block;
@@ -261,6 +273,7 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 		if (!bh)
 			goto failure;
 		/* Reader: pointers */
+		/* 检查chain数组从开始到p，是否构成有效映射链。 */
 		if (!verify_chain(chain, p))
 			goto changed;
 		add_chain(++p, bh, (u32*)bh->b_data + *++offsets);
