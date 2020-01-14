@@ -177,8 +177,9 @@ static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 	 * offsets数组返回。
 	 */
 
-	/* 首先计算在出当前文件系统配置下，一个记录块，可以包含多少个 */
-	/* 指向记录块的地址。 */
+	/* 首先计算在当前文件系统配置下，一个记录块，可以包含多少个 */
+	/* 指向记录块的地址，也就是可以存多少个指针，结果存放在prts变量中。 */
+	/* 记录块大小为1KB时，prts值为256 */
 	int ptrs = EXT2_ADDR_PER_BLOCK(inode->i_sb);
 	int ptrs_bits = EXT2_ADDR_PER_BLOCK_BITS(inode->i_sb);
 	const long direct_blocks = EXT2_NDIR_BLOCKS,
