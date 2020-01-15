@@ -2570,6 +2570,7 @@ unlock:
 		UnlockPage(page);
 		if (deactivate)
 			deactivate_page(page);
+		/* 当前页面使用完毕，page的引用计数递减。 */
 		page_cache_release(page);
 
 		if (status < 0)

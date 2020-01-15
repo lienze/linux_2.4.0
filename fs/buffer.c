@@ -1675,6 +1675,7 @@ static int __block_commit_write(struct inode *inode, struct page *page,
 		} else {
 			set_bit(BH_Uptodate, &bh->b_state);
 			if (!atomic_set_buffer_dirty(bh)) {
+				/* 为了将缓冲区根据具体情况转移到合适的LRU队列中。 */
 				__mark_dirty(bh);
 				buffer_insert_inode_queue(bh, inode);
 				need_balance_dirty = 1;
