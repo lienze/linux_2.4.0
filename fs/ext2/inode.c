@@ -365,6 +365,7 @@ static inline int ext2_find_goal(struct inode *inode,
 		 */
 		if (block == inode->u.ext2_i.i_next_alloc_block)
 			*goal = inode->u.ext2_i.i_next_alloc_goal;
+		/* 形成“空洞”后，进行建议指的查找。 */
 		if (!*goal)
 			*goal = ext2_find_near(inode, partial);
 		return 0;
@@ -592,6 +593,7 @@ out:
 		goto changed;
 
 	left = (chain + depth) - partial;
+	/* 开始具体记录块的分配。 */
 	err = ext2_alloc_branch(inode, left, goal,
 					offsets+(partial-chain), partial);
 	if (err)

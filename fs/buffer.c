@@ -977,6 +977,11 @@ void invalidate_inode_buffers(struct inode *inode)
  */
 struct buffer_head * getblk(kdev_t dev, int block, int size)
 {
+	/*
+	 * 在内存中分配缓冲区。
+	 * @block: 设备上块号
+	 * @size: 将要分配的字节数
+	 */
 	struct buffer_head * bh;
 	int isize;
 
@@ -1070,6 +1075,9 @@ int balance_dirty_state(kdev_t dev)
  */
 void balance_dirty(kdev_t dev)
 {
+	/*
+	 * 检查是否存在过多脏页面，达到一定数量时，唤醒bdflush。
+	 */
 	int state = balance_dirty_state(dev);
 
 	if (state < 0)
