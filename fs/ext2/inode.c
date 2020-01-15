@@ -599,6 +599,7 @@ out:
 	if (err)
 		goto cleanup;
 
+	/* 将新分配的映射表接入原断开的映射表中，并对整体映射表做相应调整。 */
 	if (ext2_splice_branch(inode, iblock, chain, partial, left) < 0)
 		goto changed;
 

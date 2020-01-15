@@ -2553,6 +2553,8 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		flush_dcache_page(page);
 		if (status)
 			goto fail_write;
+		/* 将缓冲页提交给kflushd。 */
+		/* 对于ext2文件系统，此处调用generic_commit_write函数。 */
 		status = mapping->a_ops->commit_write(file, page, offset, offset+bytes);
 		if (!status)
 			status = bytes;

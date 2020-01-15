@@ -759,9 +759,14 @@ void set_blocksize(kdev_t dev, int size)
  */
 static void refill_freelist(int size)
 {
+	/*
+	 * 尝试回收一些缓冲页以供周转。
+	 */
 	balance_dirty(NODEV);
+	/* 根据系统中页面的短缺程度，决定是否调用page_launder函数。 */
 	if (free_shortage())
 		page_launder(GFP_BUFFER, 0);
+	/* 再分配size个页面，制造缓冲。 */
 	grow_buffers(size);
 }
 
@@ -1036,6 +1041,10 @@ repeat:
     1 -> sync flush (wait for I/O completation) */
 int balance_dirty_state(kdev_t dev)
 {
+	/*
+	 * 检查是否需要同步数据至设备。检查依据为脏页面的数量是否达到阈值。
+	 * @dev: 设备标识（函数中未使用）
+	 */
 	unsigned long dirty, tot, hard_dirty_limit, soft_dirty_limit;
 	int shortage;
 
@@ -1080,8 +1089,10 @@ void balance_dirty(kdev_t dev)
 	 */
 	int state = balance_dirty_state(dev);
 
+	/* state为-1的情况，表示不需要同步脏数据，直接返回，不唤醒bdflush。 */
 	if (state < 0)
 		return;
+	/* state为0或1时，需要唤醒bdflush进行同步操作。 */
 	wakeup_bdflush(state);
 }
 
@@ -1597,10 +1608,14 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 		if (block_start >= to)
 			break;
 		if (!buffer_mapped(bh)) {
+			/* 此处需要找到文件内逻辑块号到设备上的块号之间的映射。 */
+			/* 对于ext2文件系统而言，此处调用的函数为ext2_get_block。 */
 			err = get_block(inode, block, bh, 1);
 			if (err)
 				goto out;
 			if (buffer_new(bh)) {
+				/* 对于新分配的记录块，可能存在相同记录块在hash表中有相同缓存。 */
+				/* 这时需要删除。 */
 				unmap_underlying_metadata(bh);
 				if (Page_Uptodate(page)) {
 					set_bit(BH_Uptodate, &bh->b_state);
@@ -1619,6 +1634,7 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 			set_bit(BH_Uptodate, &bh->b_state);
 			continue; 
 		}
+		/* 对于目标记录块已存在的情况，需要ll_rw_block写回到设备。 */
 		if (!buffer_uptodate(bh) &&
 		     (block_start < from || block_end > to)) {
 			ll_rw_block(READ, 1, &bh);
@@ -2607,9 +2623,13 @@ struct task_struct *bdflush_tsk = 0;
 
 void wakeup_bdflush(int block)
 {
+	/* bdflush_tsk全局变量，初始化时指向bdflush进程。 */
 	if (current != bdflush_tsk) {
+		/* 唤醒目标进程bdflush_tsk。 */
 		wake_up_process(bdflush_tsk);
 
+		/* 只有当block的值为1时，标明当前有大量脏页面需要回写到设备。 */
+		/* 调用flush_dirty_buffers函数。 */
 		if (block)
 			flush_dirty_buffers(0);
 	}

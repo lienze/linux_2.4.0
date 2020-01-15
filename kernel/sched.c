@@ -334,10 +334,12 @@ inline void wake_up_process(struct task_struct * p)
 	 * We want the common case fall through straight, thus the goto.
 	 */
 	spin_lock_irqsave(&runqueue_lock, flags);
+	/* 唤醒目标进程。 */
 	p->state = TASK_RUNNING;
 	if (task_on_runqueue(p))
 		goto out;
 	add_to_runqueue(p);
+	/* 比较目标进程和当前进程的权值，并请求一次调度。 */
 	reschedule_idle(p);
 out:
 	spin_unlock_irqrestore(&runqueue_lock, flags);
