@@ -884,6 +884,10 @@ static void profile_readahead(int async, struct file *filp)
 
 static inline int get_max_readahead(struct inode * inode)
 {
+	/*
+	 * 获取最大预读量。
+	 * @inode: 指向inode结构的指针
+	 */
 	if (!inode->i_dev || !max_readahead[MAJOR(inode->i_dev)])
 		return MAX_READAHEAD;
 	return max_readahead[MAJOR(inode->i_dev)][MINOR(inode->i_dev)];
@@ -1012,6 +1016,12 @@ static void generic_file_readahead(int reada_ok,
  */
 void do_generic_file_read(struct file * filp, loff_t *ppos, read_descriptor_t * desc, read_actor_t actor)
 {
+	/*
+	 * 读取文件的主体函数。
+	 * @filp: 指向文件的指针
+	 * @ppos: 指向当前读取的位置，单位字节
+	 * @actor: 函数指针，指向函数file_read_actor，将缓冲页面拷贝到用户空间的缓冲区
+	 */
 	struct inode *inode = filp->f_dentry->d_inode;
 	struct address_space *mapping = inode->i_mapping;
 	unsigned long index, offset;
@@ -1021,7 +1031,9 @@ void do_generic_file_read(struct file * filp, loff_t *ppos, read_descriptor_t * 
 	int max_readahead = get_max_readahead(inode);
 
 	cached_page = NULL;
+	/* 变量index为当前读取位置所在的页面的逻辑序号。 */
 	index = *ppos >> PAGE_CACHE_SHIFT;
+	/* 变量offset为页面内的位移。 */
 	offset = *ppos & ~PAGE_CACHE_MASK;
 
 /*
@@ -1031,6 +1043,7 @@ void do_generic_file_read(struct file * filp, loff_t *ppos, read_descriptor_t * 
  * otherwise, we assume that the file accesses are sequential enough to
  * continue read-ahead.
  */
+	/* 当前页面没有落到预读窗口时，此预读窗口未被命中，窗口应该被清理。 */
 	if (index > filp->f_raend || index + filp->f_rawin < filp->f_raend) {
 		reada_ok = 0;
 		filp->f_raend = 0;

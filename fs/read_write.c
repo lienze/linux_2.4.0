@@ -129,6 +129,7 @@ asmlinkage ssize_t sys_read(unsigned int fd, char * buf, size_t count)
 			if (!ret) {
 				ssize_t (*read)(struct file *, char *, size_t, loff_t *);
 				ret = -EINVAL;
+				/* ext2文件系统在这里调用函数generic_file_read。 */
 				if (file->f_op && (read = file->f_op->read) != NULL)
 					ret = read(file, buf, count, &file->f_pos);
 			}
