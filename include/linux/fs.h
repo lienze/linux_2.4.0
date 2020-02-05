@@ -504,8 +504,8 @@ struct file {
 	atomic_t		f_count;
 	unsigned int 		f_flags;
 	mode_t			f_mode;
-	loff_t			f_pos;
-	// 预读系列变脸，ra前缀代表read ahead。
+	loff_t			f_pos;				// 当前位置，代表真正读取的上下文。
+	// 预读系列变量，ra前缀代表read ahead。
 	unsigned long 		f_reada, f_ramax, f_raend, f_ralen, f_rawin;
 	struct fown_struct	f_owner;
 	unsigned int		f_uid, f_gid;

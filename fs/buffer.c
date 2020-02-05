@@ -1124,6 +1124,9 @@ void mark_buffer_dirty(struct buffer_head *bh)
  */
 static void __refile_buffer(struct buffer_head *bh)
 {
+	/*
+	 * 根据当前数据块的状态，改变数据块应该链入的缓冲队列。
+	 */
 	int dispose = BUF_CLEAN;
 	if (buffer_locked(bh))
 		dispose = BUF_LOCKED;
@@ -1658,6 +1661,10 @@ out:
 static int __block_commit_write(struct inode *inode, struct page *page,
 		unsigned from, unsigned to)
 {
+	/*
+	 * 提交页内的修改至kflushd内核线程。
+	 * @page: 缓冲页面
+	 */
 	unsigned block_start, block_end;
 	int partial = 0, need_balance_dirty = 0;
 	unsigned blocksize;
@@ -1665,6 +1672,7 @@ static int __block_commit_write(struct inode *inode, struct page *page,
 
 	blocksize = inode->i_sb->s_blocksize;
 
+	/* for循环中，遍历缓冲页面中的记录块。 */
 	for(bh = head = page->buffers, block_start = 0;
 	    bh != head || !block_start;
 	    block_start=block_end, bh = bh->b_this_page) {

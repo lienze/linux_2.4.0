@@ -1051,6 +1051,7 @@ void do_generic_file_read(struct file * filp, loff_t *ppos, read_descriptor_t * 
 		filp->f_ramax = 0;
 		filp->f_rawin = 0;
 	} else {
+		/* 预读窗口有效。 */
 		reada_ok = 1;
 	}
 /*
