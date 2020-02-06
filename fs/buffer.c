@@ -773,7 +773,7 @@ static void refill_freelist(int size)
 void init_buffer(struct buffer_head *bh, bh_end_io_t *handler, void *private)
 {
 	bh->b_list = BUF_CLEAN;
-	bh->b_end_io = handler;
+	bh->b_end_io = handler;		// handler函数指针，提供当设备完成I/O时所要进行的操作。
 	bh->b_private = private;
 }
 
@@ -1699,6 +1699,7 @@ static int __block_commit_write(struct inode *inode, struct page *page,
 	 * the next read(). Here we 'discover' wether the page went
 	 * uptodate as a result of this (potentially partial) write.
 	 */
+	/* 正常情况下，当前遍历的这个页，将被设置为PG_uptodate标志。 */
 	if (!partial)
 		SetPageUptodate(page);
 	return 0;

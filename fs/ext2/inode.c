@@ -534,7 +534,9 @@ static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *
 {
 	/*
 	 * 函数主要为了确定从文件内逻辑块号到设备中物理块号之间到映射问题。
-	 * @iblock: 指将要处理到记录块在文件爱你中国女的逻辑块号。
+	 * @iblock: 指将要处理到记录块在文件中的逻辑块号。
+	 * @bh_result: TODO
+	 * @create: 是否为尚未分配物理块的逻辑块分配物理块。
 	 */
 	int err = -EIO;
 	int offsets[4];

@@ -1173,6 +1173,8 @@ page_not_up_to_date:
 
 readpage:
 		/* ... and start the actual read. The read will unlock the page. */
+		/* 前面的方法都试过了，只能从设备读取数据。对于ext2文件系统，这里
+		 * 调用的是ext2_readpage。 */
 		error = mapping->a_ops->readpage(filp, page);
 
 		if (!error) {
@@ -1221,6 +1223,7 @@ no_cached_page:
 		 * Ok, add the new page to the hash-queues...
 		 */
 		page = cached_page;
+		/* 将分配的页面链入相应队列。 */
 		__add_to_page_cache(page, mapping, index, hash);
 		spin_unlock(&pagecache_lock);
 		cached_page = NULL;
