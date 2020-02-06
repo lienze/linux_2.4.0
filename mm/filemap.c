@@ -1114,6 +1114,7 @@ page_ok:
 		 * virtual addresses, take care about potential aliasing
 		 * before reading the page on the kernel side.
 		 */
+		/* 读取情景1: 找到页面，并且此页面与设备上的内容一致。 */
 		if (mapping->i_mmap_shared != NULL)
 			flush_dcache_page(page);
 
@@ -1127,11 +1128,14 @@ page_ok:
 		 * "pos" here (the actor routine has to update the user buffer
 		 * pointers and the remaining count).
 		 */
+		/* actor为函数指针，指向函数file_read_actor。返回值为拷贝到
+		 * 用户缓冲区的字节数。 */
 		nr = actor(desc, page, offset, nr);
+		/* 当前页面读取成功以后，进行维护index与offset变量，向前推进。 */
 		offset += nr;
 		index += offset >> PAGE_CACHE_SHIFT;
 		offset &= ~PAGE_CACHE_MASK;
-	
+		/* 使用过后，释放page。 */
 		page_cache_release(page);
 		if (nr && desc->count)
 			continue;
@@ -1141,8 +1145,13 @@ page_ok:
  * Ok, the page was not immediately readable, so let's try to read ahead while we're at it..
  */
 page_not_up_to_date:
+		/* 读取情景2: 找到了页面，但是页面与设备上的页面不一致。 */
+
+		/* 这种情况，先进行预读。 */
 		generic_file_readahead(reada_ok, filp, inode, page);
 
+		/* 预读之后，检查当前页面是否已经与设备上的页面一致。
+		 * 若一致，跳转到情景1。 */
 		if (Page_Uptodate(page))
 			goto page_ok;
 
