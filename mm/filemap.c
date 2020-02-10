@@ -897,6 +897,10 @@ static void generic_file_readahead(int reada_ok,
 	struct file * filp, struct inode * inode,
 	struct page * page)
 {
+	/*
+	 * 对文件进行预读。
+	 * @reada_ok: 目标页面page是否在之前的预读窗口内。
+	 */
 	unsigned long end_index = inode->i_size >> PAGE_CACHE_SHIFT;
 	unsigned long index = page->index;
 	unsigned long max_ahead, ahead;
@@ -904,6 +908,7 @@ static void generic_file_readahead(int reada_ok,
 	int max_readahead = get_max_readahead(inode);
 
 	raend = filp->f_raend;
+	/* 初始化预读量。 */
 	max_ahead = 0;
 
 /*
