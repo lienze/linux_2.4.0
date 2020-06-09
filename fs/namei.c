@@ -395,10 +395,14 @@ int follow_down(struct vfsmount **mnt, struct dentry **dentry)
  
 static inline void follow_dotdot(struct nameidata *nd)
 {
+	/*
+	 * 进入当前dentry节点的父目录中。
+	 */
 	while(1) {
 		struct vfsmount *parent;
 		struct dentry *dentry;
 		read_lock(&current->fs->lock);
+		//当前节点即为本进程的根节点，不能继续向上了。
 		if (nd->dentry == current->fs->root &&
 		    nd->mnt == current->fs->rootmnt)  {
 			read_unlock(&current->fs->lock);
@@ -406,6 +410,7 @@ static inline void follow_dotdot(struct nameidata *nd)
 		}
 		read_unlock(&current->fs->lock);
 		spin_lock(&dcache_lock);
+		
 		if (nd->dentry != nd->mnt->mnt_root) {
 			dentry = dget(nd->dentry->d_parent);
 			spin_unlock(&dcache_lock);
@@ -437,6 +442,9 @@ static inline void follow_dotdot(struct nameidata *nd)
  */
 int path_walk(const char * name, struct nameidata *nd)
 {
+	/*
+	 * 根据给定的路径名name的指引进行搜索。
+	 */
 	struct dentry *dentry;
 	struct inode *inode;
 	int err;
@@ -447,6 +455,7 @@ int path_walk(const char * name, struct nameidata *nd)
 	if (!*name)
 		goto return_base;
 
+	//搜索开始的起点dentry一定是个目录，而目录一定存在相应的索引节点。
 	inode = nd->dentry->d_inode;
 	if (current->link_count)
 		lookup_flags = LOOKUP_FOLLOW;
@@ -454,7 +463,7 @@ int path_walk(const char * name, struct nameidata *nd)
 	/* At this point we know we have a real path component. */
 	for(;;) {
 		unsigned long hash;
-		struct qstr this;
+		struct qstr this;//用来存放路径名中当前节点的hash值及节点名。
 		unsigned int c;
 
 		err = permission(inode, MAY_EXEC);
@@ -476,10 +485,10 @@ int path_walk(const char * name, struct nameidata *nd)
 
 		/* remove trailing slashes? */
 		if (!c)
-			goto last_component;
+			goto last_component;//当前节点已经是路径中的最后一个节点。
 		while (*++name == '/');
 		if (!*name)
-			goto last_with_slashes;
+			goto last_with_slashes;//当前节点后存在slash。
 
 		/*
 		 * "." and ".." are special - ".." especially so because it has
@@ -821,8 +830,10 @@ int __user_walk(const char *name, unsigned flags, struct nameidata *nd)
 	err = PTR_ERR(tmp);
 	if (!IS_ERR(tmp)) {
 		err = 0;
-		if (path_init(tmp, flags, nd))
+		if (path_init(tmp, flags, nd)) {
+			//此时nd结构中的dentry指向了搜索路径的起点。
 			err = path_walk(tmp, nd);
+		}
 		putname(tmp);
 	}
 	return err;
