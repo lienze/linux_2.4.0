@@ -110,11 +110,14 @@ static inline int do_getname(const char *filename, char *page)
 	int retval;
 	unsigned long len = PATH_MAX + 1;
 
+	//filename指针指向的逻辑地址如果超过进程有效空间（用户可使用地址空间）。
 	if ((unsigned long) filename >= TASK_SIZE) {
 		if (!segment_eq(get_fs(), KERNEL_DS))
 			return -EFAULT;
-	} else if (TASK_SIZE - (unsigned long) filename < PAGE_SIZE)
+	} else if (TASK_SIZE - (unsigned long) filename < PAGE_SIZE) {
+		//路径名字符串位于较高地址，为了不越界（3GB边界），进行长度缩减。
 		len = TASK_SIZE - (unsigned long) filename;
+	}
 
 	retval = strncpy_from_user((char *)page, filename, len);
 	if (retval > 0) {
@@ -128,13 +131,17 @@ static inline int do_getname(const char *filename, char *page)
 
 char * getname(const char * filename)
 {
+	/*
+	 * 在系统空间中分配一个页面，并将filename复制到页面中。
+	 * @filename: 指向在用户空间中的路径名。
+	 */
 	char *tmp, *result;
 
 	result = ERR_PTR(-ENOMEM);
-	tmp = __getname();
+	tmp = __getname();//申请一个页，用来存储文件路径名。
 	if (tmp)  {
 		int retval = do_getname(filename, tmp);
-
+		//此时result指向内核空间中的一个页，其中记录的是路径名。
 		result = tmp;
 		if (retval < 0) {
 			putname(tmp);
@@ -801,6 +808,12 @@ access:
  */
 int __user_walk(const char *name, unsigned flags, struct nameidata *nd)
 {
+	/*
+	 * 根据路径名，获取nameidata结构，其中包括dentry等。
+	 * @name: 路径名。
+	 * @flags: 标志位，用来指定查找方式。
+	 * @nd: 临时结构，用来返回dentry等结果。
+	 */
 	char *tmp;
 	int err;
 
