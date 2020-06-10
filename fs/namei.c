@@ -274,6 +274,9 @@ static struct dentry * cached_lookup(struct dentry * parent, struct qstr * name,
  */
 static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, int flags)
 {
+	/*
+	 * 通过磁盘查找dentry。
+	 */
 	struct dentry * result;
 	struct inode *dir = parent->d_inode;
 
@@ -415,9 +418,11 @@ static inline void follow_dotdot(struct nameidata *nd)
 			dentry = dget(nd->dentry->d_parent);
 			spin_unlock(&dcache_lock);
 			dput(nd->dentry);
+			//向上跳一层。
 			nd->dentry = dentry;
 			break;
 		}
+		//检查当前的vfsmount结构的父设备是否是其本身，如果是，则不能继续向上跳。
 		parent=nd->mnt->mnt_parent;
 		if (parent == nd->mnt) {
 			spin_unlock(&dcache_lock);
@@ -516,9 +521,11 @@ int path_walk(const char * name, struct nameidata *nd)
 			if (err < 0)
 				break;
 		}
+		//先通过cached_lookup函数在内存中寻找该节点，若找不到，则到磁盘上去找。
 		/* This does the actual lookups.. */
 		dentry = cached_lookup(nd->dentry, &this, LOOKUP_CONTINUE);
 		if (!dentry) {
+			//hash缓存链中没有找到dentry，到磁盘中找。
 			dentry = real_lookup(nd->dentry, &this, LOOKUP_CONTINUE);
 			err = PTR_ERR(dentry);
 			if (IS_ERR(dentry))

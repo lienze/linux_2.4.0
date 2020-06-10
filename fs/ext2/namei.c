@@ -81,6 +81,7 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 
 		if ((block << EXT2_BLOCK_SIZE_BITS (sb)) >= dir->i_size)
 			break;
+		//通过调用ext2_getblk从缓冲着的记录快中找到给定目录文件的开头8个逻辑块。
 		bh = ext2_getblk (dir, block, 0, &err);
 		bh_use[block] = bh;
 		/* 如果存在缓冲区中的内容与磁盘上的内容不一致，那么将bh */
@@ -130,6 +131,7 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 
 			if ((char *) de + namelen <= dlimit &&
 			    ext2_match (namelen, name, de)) {
+				//此时找到了匹配的目录项。
 				/* found a match -
 				   just to be sure, do a full check */
 				if (!ext2_check_dir_entry("ext2_find_entry",
@@ -172,6 +174,9 @@ failure:
 
 static struct dentry *ext2_lookup(struct inode * dir, struct dentry *dentry)
 {
+	/*
+	 * ext2文件系统在磁盘上搜索过程的具体实现。
+	 */
 	struct inode * inode;
 	struct ext2_dir_entry_2 * de;
 	struct buffer_head * bh;

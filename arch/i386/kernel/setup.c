@@ -663,6 +663,7 @@ void __init setup_arch(char **cmdline_p)
 	for (i = 0; i < e820.nr_map; i++) {
 		unsigned long start, end;
 		/* RAM? */
+		//通过bios提供的e820获取物理内存大小。
 		if (e820.map[i].type != E820_RAM)
 			continue;
 		start = PFN_UP(e820.map[i].addr);

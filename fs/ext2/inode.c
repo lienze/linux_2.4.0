@@ -1002,6 +1002,10 @@ do_indirects:
 
 void ext2_read_inode (struct inode * inode)
 {
+	/*
+	 * ext2文件系统从磁盘读取结点信息至内存中，并初始化inode。
+	 * @inode: 已经创建好了的inode结构，但是此时无主要信息。
+	 */
 	struct buffer_head * bh;
 	struct ext2_inode * raw_inode;
 	unsigned long block_group;

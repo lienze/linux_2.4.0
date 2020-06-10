@@ -714,7 +714,11 @@ static inline struct list_head * d_hash(struct dentry * parent, unsigned long ha
  
 struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 {
-	/* 函数主要负责搜索parent目录下的指定目录项，即参数name指定的目录项 */
+	/*
+	 * 函数主要负责搜索parent目录下的指定目录项，即参数name指定的目录项
+	 * @parent: 指向上一层节点的dentry结构。
+	 * @name: 指向刚才在path_walk中建立的qstr结构。
+	 */
 	unsigned int len = name->len;
 	unsigned int hash = name->hash;
 	const unsigned char *str = name->name;
