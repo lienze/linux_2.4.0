@@ -260,6 +260,7 @@ extern void dput(struct dentry *);
 
 static __inline__ int d_mountpoint(struct dentry *dentry)
 {
+	//检查dentry是否为安装点。
 	return !list_empty(&dentry->d_vfsmnt);
 }
 

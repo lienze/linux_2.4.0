@@ -189,6 +189,9 @@ int vfs_permission(struct inode * inode,int mask)
 
 int permission(struct inode * inode,int mask)
 {
+	/*
+	 * 对访问权限的判定。
+	 */
 	if (inode->i_op && inode->i_op->permission) {
 		int retval;
 		lock_kernel();
@@ -569,6 +572,9 @@ int path_walk(const char * name, struct nameidata *nd)
 		/* here ends the main loop */
 
 last_with_slashes:
+		//路径名的结尾有个slash字符，表示路径的终点是个目录。
+		//如果这个节点代表这一个连接，就一定要前进到连接的对象处。
+		//所以在这里设置两个标志位。
 		lookup_flags |= LOOKUP_FOLLOW | LOOKUP_DIRECTORY;
 last_component:
 		if (lookup_flags & LOOKUP_PARENT)
