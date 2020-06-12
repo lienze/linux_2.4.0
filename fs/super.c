@@ -268,6 +268,7 @@ struct file_system_type *get_fs_type(const char *name)
 	if (fs && !try_inc_mod_count(fs->owner))
 		fs = NULL;
 	read_unlock(&file_systems_lock);
+	//未找到所需的文件系统类型。
 	if (!fs && (request_module(name) == 0)) {
 		read_lock(&file_systems_lock);
 		fs = *(find_filesystem(name));
@@ -785,6 +786,9 @@ void put_unnamed_dev(kdev_t dev)
 static struct super_block *get_sb_bdev(struct file_system_type *fs_type,
 	char *dev_name, int flags, void * data)
 {
+	/*
+	 * 获取常规文件系统的超级块信息。
+	 */
 	struct inode *inode;
 	struct block_device *bdev;
 	struct block_device_operations *bdops;
@@ -792,15 +796,18 @@ static struct super_block *get_sb_bdev(struct file_system_type *fs_type,
 	struct nameidata nd;
 	kdev_t dev;
 	int error = 0;
+	//要求常规文件系统必须指示文件系统的名字。
 	/* What device it is? */
 	if (!dev_name || !*dev_name)
 		return ERR_PTR(-EINVAL);
+	//寻找目标节点的dentry与inode结构。
 	if (path_init(dev_name, LOOKUP_FOLLOW|LOOKUP_POSITIVE, &nd))
 		error = path_walk(dev_name, &nd);
 	if (error)
 		return ERR_PTR(error);
 	inode = nd.dentry->d_inode;
 	error = -ENOTBLK;
+	//找到的inode结构，必须指向一个块设备。
 	if (!S_ISBLK(inode->i_mode))
 		goto out;
 	error = -EACCES;
@@ -1352,6 +1359,7 @@ long do_mount(char * dev_name, char * dir_name, char *type_page,
 		return do_loopback(dev_name, dir_name);
 #endif
 
+	//此处检查是否具有管理员权限。
 	/* for the rest we _really_ need capabilities... */
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
@@ -1368,12 +1376,13 @@ long do_mount(char * dev_name, char * dir_name, char *type_page,
 	if (retval)
 		goto fs_out;
 
+	//将待安装设备的超级块读进来并在内存中建立起相应的super_block结构。
 	/* get superblock, locks mount_sem on success */
-	if (fstype->fs_flags & FS_NOMOUNT)
+	if (fstype->fs_flags & FS_NOMOUNT)	//通常特殊的文件系统不允许使用mount挂载。
 		sb = ERR_PTR(-EINVAL);
-	else if (fstype->fs_flags & FS_REQUIRES_DEV)
+	else if (fstype->fs_flags & FS_REQUIRES_DEV)	//正常的物理设备，专用来存储数据的。
 		sb = get_sb_bdev(fstype, dev_name, flags, data_page);
-	else if (fstype->fs_flags & FS_SINGLE)
+	else if (fstype->fs_flags & FS_SINGLE)	//某些设备共享同一个超级块。
 		sb = get_sb_single(fstype, flags, data_page);
 	else
 		sb = get_sb_nodev(fstype, flags, data_page);
@@ -1421,6 +1430,13 @@ fail:
 asmlinkage long sys_mount(char * dev_name, char * dir_name, char * type,
 			  unsigned long flags, void * data)
 {
+	/*
+	 * 系统调用mount()在内核中的实现。
+	 * @dev_name: 待安装设备的路径名。
+	 * @dir_name: 安装点（空闲目录节点）的路径名。
+	 * @type: 文件系统类型的字符串。
+	 * @flags: 安装模式。
+	 */
 	int retval;
 	unsigned long data_page;
 	unsigned long type_page;
