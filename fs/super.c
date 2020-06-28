@@ -723,7 +723,11 @@ static struct super_block * read_super(kdev_t dev, struct block_device *bdev,
 				       struct file_system_type *type, int flags,
 				       void *data, int silent)
 {
+	/*
+	 * 从设备中读取超级块信息。
+	 */
 	struct super_block * s;
+	//首先从空闲的super_block队列中找到一个空闲的结构。
 	s = get_empty_super();
 	if (!s)
 		goto out;
@@ -738,6 +742,7 @@ static struct super_block * read_super(kdev_t dev, struct block_device *bdev,
 	sema_init(&s->s_dquot.dqoff_sem, 1);
 	s->s_dquot.flags = 0;
 	lock_super(s);
+	//对于ext2文件系统，函数指针指向ext2_read_super。
 	if (!type->read_super(s, data, silent))
 		goto out_fail;
 	unlock_super(s);
@@ -819,6 +824,7 @@ static struct super_block *get_sb_bdev(struct file_system_type *fs_type,
 	/* Done with lookups, semaphore down */
 	down(&mount_sem);
 	dev = to_kdev_t(bdev->bd_dev);
+	//开始搜索或建立待安装设备的超级块结构。
 	sb = get_super(dev);
 	if (sb) {
 		if (fs_type == sb->s_type &&
@@ -827,9 +833,11 @@ static struct super_block *get_sb_bdev(struct file_system_type *fs_type,
 			return sb;
 		}
 	} else {
+		//通常会执行此处的分支，因为大多数情况是首次安装设备。
 		mode_t mode = FMODE_READ; /* we always need it ;-) */
 		if (!(flags & MS_RDONLY))
 			mode |= FMODE_WRITE;
+		//打开这个设备文件。
 		error = blkdev_get(bdev, mode, 0, BDEV_FS);
 		if (error)
 			goto out;
@@ -838,8 +846,10 @@ static struct super_block *get_sb_bdev(struct file_system_type *fs_type,
 		if (!(flags & MS_RDONLY) && is_read_only(dev))
 			goto out1;
 		error = -EINVAL;
+		//打开设备后，从设备上读入超级块并在内存中建立起super_block结构。
 		sb = read_super(dev, bdev, fs_type, flags, data, 0);
 		if (sb) {
+			//递增使用此种文件系统类型的可安装模块的使用者计数。
 			get_filesystem(fs_type);
 			path_release(&nd);
 			return sb;
@@ -1019,6 +1029,9 @@ int may_umount(struct vfsmount *mnt)
 
 static int do_umount(struct vfsmount *mnt, int umount_root, int flags)
 {
+	/*
+	 * 文件系统的拆卸。
+	 */
 	struct super_block * sb = mnt->mnt_sb;
 
 	/*
@@ -1079,6 +1092,7 @@ static int do_umount(struct vfsmount *mnt, int umount_root, int flags)
 	 * about for the moment.
 	 */
 
+	//预先调用开始处理拆卸的函数。
 	if( (flags&MNT_FORCE) && sb->s_op->umount_begin)
 		sb->s_op->umount_begin(sb);
 
@@ -1088,7 +1102,9 @@ static int do_umount(struct vfsmount *mnt, int umount_root, int flags)
 	 * root entry should be in use and (b) that root entry is
 	 * clean.
 	 */
+	//当一个设备被拆卸，属于这个设备的所有dentry结构都要被清理。
 	shrink_dcache_sb(sb);
+	//同步超级块及索引节点的信息。
 	fsync_dev(sb->s_dev);
 
 	if (sb->s_root->d_inode->i_state) {
@@ -1191,6 +1207,9 @@ static int mount_is_safe(struct nameidata *nd)
  */
 static int do_loopback(char *old_name, char *new_name)
 {
+	/*
+	 * 回接设备的安装。
+	 */
 	struct nameidata old_nd, new_nd;
 	int err = 0;
 	if (!old_name || !*old_name)
@@ -1345,6 +1364,7 @@ long do_mount(char * dev_name, char * dir_name, char *type_page,
 
 	/* "mount --bind"? Equivalent to older "mount -t bind" */
 	/* No capabilities? What if users do thousands of these? */
+	//MS_BIND表示所安装的设备是个“捆绑”到另一个对象上的回接设备。
 	if (flags & MS_BIND)
 		return do_loopback(dev_name, dir_name);
 

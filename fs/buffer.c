@@ -306,7 +306,9 @@ int fsync_dev(kdev_t dev)
 	sync_buffers(dev, 0);
 
 	lock_kernel();
+	//同步超级块。
 	sync_supers(dev);
+	//同步索引节点。
 	sync_inodes(dev);
 	DQUOT_SYNC(dev);
 	unlock_kernel();

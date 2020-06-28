@@ -303,6 +303,9 @@ restart:
  */
 static inline void prune_one_dentry(struct dentry * dentry)
 {
+	/*
+	 * 具体释放掉dentry结构的函数。
+	 */
 	struct dentry * parent;
 
 	list_del_init(&dentry->d_hash);
@@ -386,6 +389,9 @@ void prune_dcache(int count)
 
 void shrink_dcache_sb(struct super_block * sb)
 {
+	/*
+	 * 扫描缓冲队列dentry_unused，删除所有属于设备的dentry结构。
+	 */
 	struct list_head *tmp, *next;
 	struct dentry *dentry;
 

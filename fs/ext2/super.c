@@ -384,6 +384,12 @@ static int ext2_check_descriptors (struct super_block * sb)
 struct super_block * ext2_read_super (struct super_block * sb, void * data,
 				      int silent)
 {
+	/*
+	 * ext2文件系统从磁盘中读取超级块的函数实现。
+	 * @sb: 指向super_block数据结构的指针。
+	 * @data: ext2文件系统指向表示安装可选项的字符串。
+	 * @silent: 是否详细报告出错信息。
+	 */
 	struct buffer_head * bh;
 	struct ext2_super_block * es;
 	unsigned long sb_block = 1;
