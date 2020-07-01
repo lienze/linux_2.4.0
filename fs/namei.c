@@ -771,8 +771,10 @@ struct dentry * lookup_hash(struct qstr *name, struct dentry * base)
 			goto out;
 	}
 
+	//以下为函数主体，注意具体操作流程。
 	dentry = cached_lookup(base, name, 0);
 	if (!dentry) {
+		//此处有可能睡眠，醒来时有可能被其他进程创建完毕了，所以还要再次检查。
 		struct dentry *new = d_alloc(base, name);
 		dentry = ERR_PTR(-ENOMEM);
 		if (!new)
@@ -1022,6 +1024,7 @@ int open_namei(const char * pathname, int flag, int mode, struct nameidata *nd)
 		goto ok;
 	}
 
+	//以下为O_CREAT为1的情况。
 	/*
 	 * Create - we need to know the parent.
 	 */
@@ -1157,6 +1160,7 @@ ok:
 		/*
 		 * Refuse to truncate files with mandatory locks held on them.
 		 */
+		//检查目标文件是否允许使用强制锁。
 		error = locks_verify_locked(inode);
 		if (!error) {
 			DQUOT_INIT(inode);

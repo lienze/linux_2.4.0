@@ -673,6 +673,7 @@ struct file *dentry_open(struct dentry *dentry, struct vfsmount *mnt, int flags)
 		if (error)
 			goto cleanup_all;
 	}
+	//文件已经打开了，清空以下这些标志位。
 	f->f_flags &= ~(O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC);
 
 	return f;
