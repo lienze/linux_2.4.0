@@ -366,7 +366,7 @@ repeat:
 		goto fail;
 
 	err = -EIO;
-	/* 变量i表示块组号。 */
+	/* 变量i表示块组号，此时已经确定了将索引节点分配在哪一个块组中。 */
 	bitmap_nr = load_inode_bitmap (sb, i);
 	if (bitmap_nr < 0)
 		goto fail;
@@ -405,6 +405,7 @@ repeat:
 		}
 		goto repeat;
 	}
+	//此时变量i表示块组号，j表示所分配的索引节点在本块组位图中的序号。
 	j += i * EXT2_INODES_PER_GROUP(sb) + 1;
 	if (j < EXT2_FIRST_INO(sb) || j > le32_to_cpu(es->s_inodes_count)) {
 		ext2_error (sb, "ext2_new_inode",
