@@ -1896,6 +1896,9 @@ int block_prepare_write(struct page *page, unsigned from, unsigned to,
 int generic_commit_write(struct file *file, struct page *page,
 		unsigned from, unsigned to)
 {
+	/*
+	 * 将缓冲页面提交给kflushd线程。
+	 */
 	struct inode *inode = page->mapping->host;
 	loff_t pos = ((loff_t)page->index << PAGE_CACHE_SHIFT) + to;
 	__block_commit_write(inode,page,from,to);
