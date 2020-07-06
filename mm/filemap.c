@@ -2409,6 +2409,13 @@ retry:
 static inline struct page * __grab_cache_page(struct address_space *mapping,
 				unsigned long index, struct page **cached_page)
 {
+	/*
+	 * 根据index参数寻找缓冲页面。
+	 * @mapping: 
+	 * @index: 指定页面的索引。
+	 * @cached_page: 指定备用的缓冲页面。
+	 */
+
 	/* 由于页面在文件中的逻辑序号并不唯一，所以加入mapping的地址计算hash值。 */
 	struct page *page, **hash = page_hash(mapping, index);
 repeat:
@@ -2422,6 +2429,7 @@ repeat:
 				return NULL;
 		}
 		page = *cached_page;
+		//将分配或指定的缓冲页面链接到相应的hash队列中。
 		if (add_to_page_cache_unique(page, mapping, index, hash))
 			goto repeat;
 		*cached_page = NULL;
@@ -2575,7 +2583,7 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		}
 
 		/* 在开始写入之前，还要进行准备工作，根据不同的文件系统而言， */
-		/* 调用不同的函数。ext2文件系统调用ext2_get_block()。 */
+		/* 调用不同的函数。ext2文件系统调用ext2_prepare_write()。 */
 		status = mapping->a_ops->prepare_write(file, page, offset, offset+bytes);
 		if (status)
 			goto unlock;
