@@ -995,12 +995,14 @@ struct buffer_head * getblk(kdev_t dev, int block, int size)
 repeat:
 	spin_lock(&lru_list_lock);
 	write_lock(&hash_table_lock);
+	//首先在hash表里面找。
 	bh = __get_hash_table(dev, block, size);
 	if (bh)
 		goto out;
 
 	isize = BUFSIZE_INDEX(size);
 	spin_lock(&free_list[isize].lock);
+	//接着试着从free_list数组的相应队列分配。
 	bh = free_list[isize].list;
 	if (bh) {
 		__remove_from_free_list(bh, isize);
@@ -1014,11 +1016,12 @@ repeat:
 	 * and it is clean.
 	 */
 	if (bh) {
+		//初始化缓冲区。
 		init_buffer(bh, NULL, NULL);
 		bh->b_dev = dev;
 		bh->b_blocknr = block;
 		bh->b_state = 1 << BH_Mapped;
-
+		//链入相应的hash表与LRU队列。
 		/* Insert the buffer into the regular lists */
 		__insert_into_queues(bh);
 	out:
@@ -1034,6 +1037,7 @@ repeat:
 	 */
 	write_unlock(&hash_table_lock);
 	spin_unlock(&lru_list_lock);
+	//回收一些缓冲区供周转。
 	refill_freelist(size);
 	goto repeat;
 }
@@ -1449,6 +1453,9 @@ int block_flushpage(struct page *page, unsigned long offset)
 
 static void create_empty_buffers(struct page *page, kdev_t dev, unsigned long blocksize)
 {
+	/*
+	 * 对page指针指向的页面创建并关联缓冲结构buffer_head。
+	 */
 	struct buffer_head *bh, *head, *tail;
 
 	head = create_buffers(page, blocksize, 1);
@@ -1465,6 +1472,7 @@ static void create_empty_buffers(struct page *page, kdev_t dev, unsigned long bl
 	} while (bh);
 	tail->b_this_page = head;
 	page->buffers = head;
+	//递增page结构的共享计数。
 	page_cache_get(page);
 }
 
@@ -1596,6 +1604,7 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 
 	/* 首先根据超级块中的信息，提取当前文件系统下的记录块大小。 */
 	blocksize = inode->i_sb->s_blocksize;
+	//对于新创建的页面，此时还没有关联缓冲区buffer_head结构，所以要进行创建。
 	if (!page->buffers)
 		create_empty_buffers(page, inode->i_dev, blocksize);
 	head = page->buffers;

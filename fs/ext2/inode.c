@@ -84,6 +84,10 @@ void ext2_discard_prealloc (struct inode * inode)
 
 static int ext2_alloc_block (struct inode * inode, unsigned long goal, int *err)
 {
+	/*
+	 * 在设备上分配记录块。
+	 * @goal: 表示建议分配的设备上的记录块号。
+	 */
 #ifdef EXT2FS_DEBUG
 	static unsigned long alloc_hits = 0, alloc_attempts = 0;
 #endif
@@ -179,7 +183,7 @@ static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 
 	/* 首先计算在当前文件系统配置下，一个记录块，可以包含多少个 */
 	/* 指向记录块的地址，也就是可以存多少个指针，结果存放在prts变量中。 */
-	/* 记录块大小为1KB时，prts值为256 */
+	/* 记录块大小为1KB时，prts值为256，ptrs_bits值为8。 */
 	int ptrs = EXT2_ADDR_PER_BLOCK(inode->i_sb);
 	int ptrs_bits = EXT2_ADDR_PER_BLOCK_BITS(inode->i_sb);
 	const long direct_blocks = EXT2_NDIR_BLOCKS,
@@ -248,7 +252,7 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 					int *err)
 {
 	/*
-	 * 函数将根据offsets数组中的指针，逐次将记录载入内存。
+	 * 函数将根据offsets数组中的指针，逐次将记录块载入内存。
 	 * @depth: 映射深度
 	 * @offsets: 映射记录，其中存储了ext2_block_to_path的搜索结果
 	 * @chain[4]: 记录结果的数组
@@ -311,6 +315,10 @@ no_block:
 
 static inline unsigned long ext2_find_near(struct inode *inode, Indirect *ind)
 {
+	/*
+	 * 形成空洞以后，确定对设备上记录块号的建议值。
+	 */
+
 	u32 *start = ind->bh ? (u32*) ind->bh->b_data : inode->u.ext2_i.i_data;
 	u32 *p;
 
@@ -351,7 +359,17 @@ static inline int ext2_find_goal(struct inode *inode,
 				 Indirect *partial,
 				 unsigned long *goal)
 {
+	/*
+	 * 在设备上找一个空闲块。
+	 * @inode: 
+	 * @block: 文件内的逻辑块号。
+	 * @chain: 
+	 * @goal: 用于返回找到的设备上的空闲块号。
+	 */
+
 	/* Writer: ->i_next_alloc* */
+	//i_next_alloc_block用来记录下一次要分配的文件内块号。
+	//i_next_alloc_goal用来记录希望下一次能分配的设备上块号。
 	if (block == inode->u.ext2_i.i_next_alloc_block + 1) {
 		inode->u.ext2_i.i_next_alloc_block++;
 		inode->u.ext2_i.i_next_alloc_goal++;
@@ -405,6 +423,15 @@ static int ext2_alloc_branch(struct inode *inode,
 			     int *offsets,
 			     Indirect *branch)
 {
+	/*
+	 * 设备上具体记录块的分配。包括目标记录块和可能需要的用于简介映射的中间记录
+	 * 块，以及映射的建立。
+	 * @num: 表示还有几层映射需要建立。
+	 * @goal: 
+	 * @offsets: 指向数组offsets。
+	 * @branch: 指向映射断裂处开始的部分。
+	 */
+
 	int blocksize = inode->i_sb->s_blocksize;
 	int n = 0;
 	int err;
@@ -423,13 +450,17 @@ static int ext2_alloc_branch(struct inode *inode,
 		 * Get buffer_head for parent block, zero it out and set 
 		 * the pointer to new one, then send parent to disk.
 		 */
+		//在内存中分配缓冲区bh。
 		bh = getblk(inode->i_dev, parent, blocksize);
 		if (!buffer_uptodate(bh))
 			wait_on_buffer(bh);
+		//将缓冲区全部清空为0。
 		memset(bh->b_data, 0, blocksize);
+		//建立本层映射。
 		branch[n].bh = bh;
 		branch[n].p = (u32*) bh->b_data + offsets[n];
 		*branch[n].p = branch[n].key;
+		//标记缓冲区为脏。
 		mark_buffer_uptodate(bh, 1);
 		mark_buffer_dirty_inode(bh, inode);
 		if (IS_SYNC(inode) || inode->u.ext2_i.i_osync) {
@@ -534,7 +565,8 @@ static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *
 {
 	/*
 	 * 函数主要为了确定从文件内逻辑块号到设备中物理块号之间到映射问题。
-	 * @iblock: 指将要处理到记录块在文件中的逻辑块号。
+	 * @inode: 文件的inode结构指针。
+	 * @iblock: 指将要处理的记录块在文件中的逻辑块号。
 	 * @bh_result: TODO
 	 * @create: 是否为尚未分配物理块的逻辑块分配物理块。
 	 */

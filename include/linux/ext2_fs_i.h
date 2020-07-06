@@ -20,6 +20,8 @@
  * second extended file system inode data in memory
  */
 struct ext2_inode_info {
+	//0~11用于直接索引，12用于一次间接寻址，13二次间接寻址，14三次间接寻址。
+	//单个文件最大为12K+256K+64M+16G
 	__u32	i_data[15];
 	__u32	i_flags;
 	__u32	i_faddr;
