@@ -1220,9 +1220,12 @@ static __inline__ void __put_unused_buffer_head(struct buffer_head * bh)
 {
 	if (bh->b_inode)
 		BUG();
+	//MAX_UNUSED_BUFFERS == 36
+	//unused_list链表将保持20~35个基本元素。
 	if (nr_unused_buffer_heads >= MAX_UNUSED_BUFFERS) {
 		kmem_cache_free(bh_cachep, bh);
 	} else {
+		//unused_list链表使用头插法进行元素扩充。
 		bh->b_blocknr = -1;
 		init_waitqueue_head(&bh->b_wait);
 		nr_unused_buffer_heads++;
@@ -1239,9 +1242,15 @@ static __inline__ void __put_unused_buffer_head(struct buffer_head * bh)
  */ 
 static struct buffer_head * get_unused_buffer_head(int async)
 {
+	/*
+	 * 获取空闲的buffer_head结构。
+	 * @async: 是否需要在不够分配时使用保留的缓冲。
+	 */
 	struct buffer_head * bh;
 
 	spin_lock(&unused_list_lock);
+	//NR_RESERVED == 16
+	//空闲链表unused_list中的buffer_head数量如果大于16个，直接分配。
 	if (nr_unused_buffer_heads > NR_RESERVED) {
 		bh = unused_list;
 		unused_list = bh->b_next_free;
@@ -1255,6 +1264,7 @@ static struct buffer_head * get_unused_buffer_head(int async)
 	 * more buffer heads, because the swap-out may need
 	 * more buffer-heads itself.  Thus SLAB_BUFFER.
 	 */
+	//若unused_list存量较低，则新申请一个缓冲结构。
 	if((bh = kmem_cache_alloc(bh_cachep, SLAB_BUFFER)) != NULL) {
 		memset(bh, 0, sizeof(*bh));
 		init_waitqueue_head(&bh->b_wait);
@@ -1323,8 +1333,11 @@ static struct buffer_head * create_buffers(struct page * page, unsigned long siz
 
 try_again:
 	head = NULL;
+	//i386结构为4K。
 	offset = PAGE_SIZE;
+	//i386结构的一个页能容纳4个记录块。
 	while ((offset -= size) >= 0) {
+		//通过slab申请一个buffer_head结构的缓冲区。
 		bh = get_unused_buffer_head(async);
 		if (!bh)
 			goto no_grow;
@@ -1339,6 +1352,7 @@ try_again:
 		atomic_set(&bh->b_count, 0);
 		bh->b_size = size;
 
+		//将申请的缓冲区挂入页面。
 		set_bh_page(bh, page, offset);
 
 		bh->b_list = BUF_CLEAN;
@@ -1593,6 +1607,7 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 	 * 准备写操作之前，进行的准备。
 	 * @inode: 指向inode结构的指针。
 	 * @page: 指向准备写入的缓冲页。
+	 * @from && to: 描述的范围通常为一整页或一页的前部分或后一部分。
 	 * @get_block: 对于ext2文件系统，该函数指针指向函数ext2_get_block。
 	 */
 	unsigned block_start, block_end;

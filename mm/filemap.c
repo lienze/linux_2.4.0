@@ -2587,8 +2587,11 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 		status = mapping->a_ops->prepare_write(file, page, offset, offset+bytes);
 		if (status)
 			goto unlock;
+		//获取页的虚拟地址。
 		kaddr = page_address(page);
+		//从用户空间拷贝欲写入的内容。
 		status = copy_from_user(kaddr+offset, buf, bytes);
+		//i386结构下为空操作。
 		flush_dcache_page(page);
 		if (status)
 			goto fail_write;
