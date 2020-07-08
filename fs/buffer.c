@@ -1343,7 +1343,7 @@ try_again:
 			goto no_grow;
 
 		bh->b_dev = B_FREE;  /* Flag as unused */
-		bh->b_this_page = head;
+		bh->b_this_page = head;//此处依然使用头插法，将最多4个记录块插入链表中。
 		head = bh;
 
 		bh->b_state = 0;
@@ -1477,6 +1477,7 @@ static void create_empty_buffers(struct page *page, kdev_t dev, unsigned long bl
 		BUG();
 
 	bh = head;
+	//对最多4个记录块进行轮询赋值。
 	do {
 		bh->b_dev = dev;
 		bh->b_blocknr = 0;
@@ -1484,6 +1485,7 @@ static void create_empty_buffers(struct page *page, kdev_t dev, unsigned long bl
 		tail = bh;
 		bh = bh->b_this_page;
 	} while (bh);
+	//接下来的赋值构成循环链。
 	tail->b_this_page = head;
 	page->buffers = head;
 	//递增page结构的共享计数。
@@ -1622,6 +1624,7 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 	//对于新创建的页面，此时还没有关联缓冲区buffer_head结构，所以要进行创建。
 	if (!page->buffers)
 		create_empty_buffers(page, inode->i_dev, blocksize);
+	//head指向页中缓冲记录块的第一个位置。
 	head = page->buffers;
 
 	bbits = inode->i_sb->s_blocksize_bits;
@@ -1631,11 +1634,14 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 	    block++, block_start=block_end, bh = bh->b_this_page) {
 		if (!bh)
 			BUG();
+		//整个循环从第一个记录块开始扫描，block_end表示当前循环中记录块的
+		//结尾（字节），block_start表示记录块的开始位置（字节）。
 		block_end = block_start+blocksize;
 		if (block_end <= from)
 			continue;
 		if (block_start >= to)
 			break;
+		//新申请的缓冲区域必然没有映射到设备上，这里还需要进行相关处理。
 		if (!buffer_mapped(bh)) {
 			/* 此处需要找到文件内逻辑块号到设备上的块号之间的映射。 */
 			/* 对于ext2文件系统而言，此处调用的函数为ext2_get_block。 */
