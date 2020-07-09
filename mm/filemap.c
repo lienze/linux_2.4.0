@@ -2412,7 +2412,7 @@ static inline struct page * __grab_cache_page(struct address_space *mapping,
 	/*
 	 * 根据index参数寻找缓冲页面。
 	 * @mapping: 
-	 * @index: 指定页面的索引。
+	 * @index: 指定页面的索引，即文件的第几个逻辑页。
 	 * @cached_page: 指定备用的缓冲页面。
 	 */
 
@@ -2584,6 +2584,7 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 
 		/* 在开始写入之前，还要进行准备工作，根据不同的文件系统而言， */
 		/* 调用不同的函数。ext2文件系统调用ext2_prepare_write()。 */
+		//根据prepare_write函数的最后一个参数可知，欲写入内容不会超过一个页。
 		status = mapping->a_ops->prepare_write(file, page, offset, offset+bytes);
 		if (status)
 			goto unlock;

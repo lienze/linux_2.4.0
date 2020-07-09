@@ -1627,6 +1627,10 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 	//head指向页中缓冲记录块的第一个位置。
 	head = page->buffers;
 
+	//bbits == 10 (1个记录块是1K，使用10比特位。)
+	//block == page->index << 2 (相当于index*2，但速度会更快。)
+	//page->index表示在磁盘中的文件，若用页表示其中的数据，则页代表第几个页。
+	//！！！注意！！！此时block代表页当中的第一个记录块的标号。
 	bbits = inode->i_sb->s_blocksize_bits;
 	block = page->index << (PAGE_CACHE_SHIFT - bbits);
 
