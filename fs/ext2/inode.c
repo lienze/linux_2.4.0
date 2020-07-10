@@ -179,6 +179,9 @@ static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 	/*
 	 * 对索引节点inode进行搜索，找到第i_block个记录块的位置，并放置于
 	 * offsets数组返回。
+	 * @inode: 指向当前文件inode结构的指针。
+	 * @i_block: 指在文件中的逻辑块号。
+	 * @offsets: 存储结果的数组。
 	 */
 
 	/* 首先计算在当前文件系统配置下，一个记录块，可以包含多少个 */
@@ -198,13 +201,16 @@ static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 		/* 12以内，使用直接映射。 */
 		offsets[n++] = i_block;
 	} else if ( (i_block -= direct_blocks) < indirect_blocks) {
+		//一次间接寻址。
 		offsets[n++] = EXT2_IND_BLOCK;
 		offsets[n++] = i_block;
 	} else if ((i_block -= indirect_blocks) < double_blocks) {
+		//二次间接寻址。
 		offsets[n++] = EXT2_DIND_BLOCK;
-		offsets[n++] = i_block >> ptrs_bits;
-		offsets[n++] = i_block & (ptrs - 1);
+		offsets[n++] = i_block >> ptrs_bits;//
+		offsets[n++] = i_block & (ptrs - 1);//取低8位。
 	} else if (((i_block -= double_blocks) >> (ptrs_bits * 2)) < ptrs) {
+		//三次间接寻址。
 		offsets[n++] = EXT2_TIND_BLOCK;
 		offsets[n++] = i_block >> (ptrs_bits * 2);
 		offsets[n++] = (i_block >> ptrs_bits) & (ptrs - 1);
@@ -258,6 +264,8 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 	 * @chain[4]: 记录结果的数组
 	 * @err: 记录执行过程中的错误，可带回函数外部
 	 */
+
+	//获取当前文件所属设备。
 	kdev_t dev = inode->i_dev;
 	int size = inode->i_sb->s_blocksize;
 	/* chain结构，其中包含的bh指针，指向从设备读入的原始数据。 */
@@ -271,6 +279,7 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 	add_chain (chain, NULL, inode->u.ext2_i.i_data + *offsets);
 	if (!p->key)
 		goto no_block;
+	//如果是直接映射，不会进入以下循环中。
 	while (--depth) {
 		/* 调用驱动层函数bread，读取第p->key个逻辑位置的记录块。 */
 		bh = bread(dev, le32_to_cpu(p->key), size);
@@ -567,7 +576,7 @@ static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *
 	 * 函数主要为了确定从文件内逻辑块号到设备中物理块号之间到映射问题。
 	 * @inode: 文件的inode结构指针。
 	 * @iblock: 指将要处理的记录块在文件中的逻辑块号。
-	 * @bh_result: TODO
+	 * @bh_result: 传入时已经被简单初始化，还需要继续初始化数据，并带回上层函数。
 	 * @create: 是否为尚未分配物理块的逻辑块分配物理块。
 	 */
 	int err = -EIO;
@@ -579,6 +588,7 @@ static int ext2_get_block(struct inode *inode, long iblock, struct buffer_head *
 	/* 首先确定当前要获取的记录块落在哪个区间。 */
 	int depth = ext2_block_to_path(inode, iblock, offsets);
 
+	//最小的深度为1，即直接映射，所以如果出现0的情况，代表出错了。
 	if (depth == 0)
 		goto out;
 

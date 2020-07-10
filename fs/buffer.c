@@ -1646,6 +1646,7 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 		if (block_start >= to)
 			break;
 		//新申请的缓冲区域必然没有映射到设备上，这里还需要进行相关处理。
+		//通过create_buffers()函数创建的缓冲记录块的state==BH_Uptodate。
 		if (!buffer_mapped(bh)) {
 			/* 此处需要找到文件内逻辑块号到设备上的块号之间的映射。 */
 			/* 对于ext2文件系统而言，此处调用的函数为ext2_get_block。 */
