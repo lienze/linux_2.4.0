@@ -207,8 +207,10 @@ static int ext2_block_to_path(struct inode *inode, long i_block, int offsets[4])
 	} else if ((i_block -= indirect_blocks) < double_blocks) {
 		//二次间接寻址。
 		offsets[n++] = EXT2_DIND_BLOCK;
-		offsets[n++] = i_block >> ptrs_bits;//
-		offsets[n++] = i_block & (ptrs - 1);//取低8位。
+		//右移8位，相当于除以256，含义为i_block的地址存在于哪个记录块中。
+		offsets[n++] = i_block >> ptrs_bits;
+		//取低7位。
+		offsets[n++] = i_block & (ptrs - 1);
 	} else if (((i_block -= double_blocks) >> (ptrs_bits * 2)) < ptrs) {
 		//三次间接寻址。
 		offsets[n++] = EXT2_TIND_BLOCK;
@@ -277,6 +279,7 @@ static inline Indirect *ext2_get_branch(struct inode *inode,
 	/* 先将第一个映射挂入chain数组的第一个位置，包括值与i_data中的地址。 */
 	/* 此时第二个参数为NULL，因为直接映射不需要载入记录块。 */
 	add_chain (chain, NULL, inode->u.ext2_i.i_data + *offsets);
+	//如果出现指向记录块的指针为空，就说明i_data数组中还未关联记录块。
 	if (!p->key)
 		goto no_block;
 	//如果是直接映射，不会进入以下循环中。
