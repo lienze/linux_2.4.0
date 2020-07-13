@@ -376,12 +376,15 @@ static inline int ext2_find_goal(struct inode *inode,
 	 * @inode: 
 	 * @block: 文件内的逻辑块号。
 	 * @chain: 
+	 * @partial: 指向断裂的Indirect结构的指针。
 	 * @goal: 用于返回找到的设备上的空闲块号。
 	 */
 
 	/* Writer: ->i_next_alloc* */
 	//i_next_alloc_block用来记录下一次要分配的文件内块号。
 	//i_next_alloc_goal用来记录希望下一次能分配的设备上块号。
+	//当以下条件符合时，说明当前状况为理想模式，文件与设备
+	//块号一一对应。
 	if (block == inode->u.ext2_i.i_next_alloc_block + 1) {
 		inode->u.ext2_i.i_next_alloc_block++;
 		inode->u.ext2_i.i_next_alloc_goal++;
@@ -395,7 +398,7 @@ static inline int ext2_find_goal(struct inode *inode,
 		 */
 		if (block == inode->u.ext2_i.i_next_alloc_block)
 			*goal = inode->u.ext2_i.i_next_alloc_goal;
-		/* 形成“空洞”后，进行建议指的查找。 */
+		/* 形成“空洞”后，进行建议值的查找。 */
 		if (!*goal)
 			*goal = ext2_find_near(inode, partial);
 		return 0;
@@ -436,10 +439,10 @@ static int ext2_alloc_branch(struct inode *inode,
 			     Indirect *branch)
 {
 	/*
-	 * 设备上具体记录块的分配。包括目标记录块和可能需要的用于简介映射的中间记录
+	 * 设备上具体记录块的分配。包括目标记录块和可能需要的用于间接映射的中间记录
 	 * 块，以及映射的建立。
 	 * @num: 表示还有几层映射需要建立。
-	 * @goal: 
+	 * @goal: 设备上新分配的空闲块号。
 	 * @offsets: 指向数组offsets。
 	 * @branch: 指向映射断裂处开始的部分。
 	 */
@@ -614,7 +617,8 @@ got_it:
 	}
 
 	/* ext2_get_branch返回值partial非空，则说明映射链 */
-	/* 在此处断裂，接下来进行必要的清理工作。 */
+	/* 在此处断裂。在非创建模式打开或出错时，要进行必 */
+	/* 要的清理工作，并返回。不进行后续操作了。 */
 	/* Next simple case - plain lookup or failed read of indirect block */
 	if (!create || err == -EIO) {
 cleanup:
