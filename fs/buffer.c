@@ -443,6 +443,11 @@ static __inline__ void __hash_unlink(struct buffer_head *bh)
 
 static void __insert_into_lru_list(struct buffer_head * bh, int blist)
 {
+	/*
+	 * 将buffer_head结构插入到指定的最近最久未使用队列。
+	 * @blist: 指定队列的下标。
+	 * Note: 目前有4种队列，分别是BUF_CLEAN BUF_DIRTY BUF_DIRTY BUF_PROTECTED
+	 */
 	struct buffer_head **bhp = &lru_list[blist];
 
 	if(!*bhp) {
@@ -1661,10 +1666,12 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 					set_bit(BH_Uptodate, &bh->b_state);
 					continue;
 				}
+				//以下两种情况，将未覆盖的buffer_head区域设置为0。
 				if (block_end > to)
 					memset(kaddr+to, 0, block_end-to);
 				if (block_start < from)
 					memset(kaddr+block_start, 0, from-block_start);
+				//x86体系结构，flush_dcache_page函数不进行任何操作。
 				if (block_end > to || block_start < from)
 					flush_dcache_page(page);
 				continue;
@@ -1674,7 +1681,7 @@ static int __block_prepare_write(struct inode *inode, struct page *page,
 			set_bit(BH_Uptodate, &bh->b_state);
 			continue; 
 		}
-		/* 对于目标记录块已存在的情况，需要ll_rw_block写回到设备。 */
+		/* 对于目标记录块已存在于内存中的情况，需要ll_rw_block写回到设备。 */
 		if (!buffer_uptodate(bh) &&
 		     (block_start < from || block_end > to)) {
 			ll_rw_block(READ, 1, &bh);
@@ -1699,7 +1706,7 @@ static int __block_commit_write(struct inode *inode, struct page *page,
 		unsigned from, unsigned to)
 {
 	/*
-	 * 提交页内的修改至kflushd内核线程。
+	 * 提交页内的修改至kflushd内核线程，以buffer_head结构为单位进行。
 	 * @page: 缓冲页面
 	 */
 	unsigned block_start, block_end;
@@ -1926,9 +1933,11 @@ int generic_commit_write(struct file *file, struct page *page,
 	 * 将缓冲页面提交给kflushd线程。
 	 */
 	struct inode *inode = page->mapping->host;
+	//计算将内容写入文件后的游标位置。
 	loff_t pos = ((loff_t)page->index << PAGE_CACHE_SHIFT) + to;
 	__block_commit_write(inode,page,from,to);
 	kunmap(page);
+	//如果游标位置超过了文件的容量，则更新inode控制信息，并标识为脏数据。
 	if (pos > inode->i_size) {
 		inode->i_size = pos;
 		mark_inode_dirty(inode);

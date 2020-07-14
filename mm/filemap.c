@@ -1066,9 +1066,11 @@ void do_generic_file_read(struct file * filp, loff_t *ppos, read_descriptor_t * 
  * Then, at least MIN_READAHEAD if read ahead is ok,
  * and at most MAX_READAHEAD in all cases.
  */
+	//如果当前读操作仅局限在文件的第一个页面的前半部分，则无需预读。
 	if (!index && offset + desc->count <= (PAGE_CACHE_SIZE >> 1)) {
 		filp->f_ramax = 0;
 	} else {
+		//对预读参数进行调整。
 		unsigned long needed;
 
 		needed = ((offset + desc->count) >> PAGE_CACHE_SHIFT) + 1;
@@ -1087,6 +1089,7 @@ void do_generic_file_read(struct file * filp, loff_t *ppos, read_descriptor_t * 
 		unsigned long end_index, nr;
 
 		end_index = inode->i_size >> PAGE_CACHE_SHIFT;
+		//如果读操作，超出文件结尾的页，则直接退出。
 		if (index > end_index)
 			break;
 		nr = PAGE_CACHE_SIZE;
@@ -1104,6 +1107,7 @@ void do_generic_file_read(struct file * filp, loff_t *ppos, read_descriptor_t * 
 		hash = page_hash(mapping, index);
 
 		spin_lock(&pagecache_lock);
+		//在hash队列里，根据目标页面的hash值查找。
 		page = __find_page_nolock(mapping, index, *hash);
 		if (!page)
 			goto no_cached_page;
@@ -1134,7 +1138,7 @@ page_ok:
 		 * pointers and the remaining count).
 		 */
 		/* actor为函数指针，指向函数file_read_actor。返回值为拷贝到
-		 * 用户缓冲区的字节数。 */
+		 * 用户空间缓冲区的字节数。 */
 		nr = actor(desc, page, offset, nr);
 		/* 当前页面读取成功以后，进行维护index与offset变量，向前推进。 */
 		offset += nr;
@@ -1245,6 +1249,9 @@ no_cached_page:
 
 static int file_read_actor(read_descriptor_t * desc, struct page *page, unsigned long offset, unsigned long size)
 {
+	/*
+	 * 将文件的内容从缓冲页面拷贝到用户空间的缓冲区中。
+	 */
 	char *kaddr;
 	unsigned long left, count = desc->count;
 
@@ -2590,7 +2597,7 @@ generic_file_write(struct file *file,const char *buf,size_t count,loff_t *ppos)
 			goto unlock;
 		//获取页的虚拟地址。
 		kaddr = page_address(page);
-		//从用户空间拷贝欲写入的内容。
+		//从用户空间拷贝欲写入的内容到指定内存地址。
 		status = copy_from_user(kaddr+offset, buf, bytes);
 		//i386结构下为空操作。
 		flush_dcache_page(page);
