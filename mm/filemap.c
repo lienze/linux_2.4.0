@@ -919,6 +919,7 @@ static void generic_file_readahead(int reada_ok,
  * If we are not going to read ahead, set the read ahead context for this 
  * page only.
  */
+	//如果页面已经被锁定，意味着设备层读入请求已经发出。
 	if (PageLocked(page)) {
 		if (!filp->f_ralen || index >= raend || index + filp->f_rawin < raend) {
 			raend = index;
@@ -1164,9 +1165,12 @@ page_not_up_to_date:
 		if (Page_Uptodate(page))
 			goto page_ok;
 
+		//此时如果页面内容还不一致，就要把页面读进来。读之前先锁定页面。
+		//锁定页面时，存在睡眠的情况。
 		/* Get exclusive access to the page ... */
 		lock_page(page);
 
+		//执行至此，页面已经被当前进程锁定。
 		/* Did it get unhashed before we got the lock? */
 		if (!page->mapping) {
 			UnlockPage(page);
@@ -1192,6 +1196,7 @@ readpage:
 
 			/* Again, try some read-ahead while waiting for the page to finish.. */
 			generic_file_readahead(reada_ok, filp, inode, page);
+			//等待读入页面，有可能进入睡眠。此处注意！
 			wait_on_page(page);
 			if (Page_Uptodate(page))
 				goto page_ok;
@@ -1223,6 +1228,9 @@ no_cached_page:
 			 * dropped the page cache lock. Check for that.
 			 */
 			spin_lock(&pagecache_lock);
+			//page_cache_alloc函数申请页时，有可能进入睡眠。
+			//而进入睡眠时，有可能被其他进程申请了相关的页，
+			//所以这里还需要再次检查。
 			page = __find_page_nolock(mapping, index, *hash);
 			if (page)
 				goto found_page;
@@ -1240,6 +1248,7 @@ no_cached_page:
 		goto readpage;
 	}
 
+	//读取完毕，对pos进行更新。
 	*ppos = ((loff_t) index << PAGE_CACHE_SHIFT) + offset;
 	filp->f_reada = 1;
 	if (cached_page)

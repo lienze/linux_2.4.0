@@ -1784,6 +1784,7 @@ int block_read_full_page(struct page *page, get_block_t *get_block)
 
 		if (!buffer_mapped(bh)) {
 			if (iblock < lblock) {
+				//实际调用ext2_get_block函数。
 				if (get_block(inode, iblock, bh, 0))
 					continue;
 			}
