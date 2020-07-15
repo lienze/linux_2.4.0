@@ -121,6 +121,7 @@ static inline int do_getname(const char *filename, char *page)
 
 	retval = strncpy_from_user((char *)page, filename, len);
 	if (retval > 0) {
+		//说明有数据拷贝到了页面内，但还需要考虑拷贝的数据是否完整。
 		if (retval < len)
 			return 0;
 		return -ENAMETOOLONG;
@@ -144,6 +145,7 @@ char * getname(const char * filename)
 		//此时result指向内核空间中的一个页，其中记录的是路径名。
 		result = tmp;
 		if (retval < 0) {
+			//拷贝出错时，减少tmp页面的使用计数。
 			putname(tmp);
 			result = ERR_PTR(retval);
 		}
@@ -420,6 +422,7 @@ static inline void follow_dotdot(struct nameidata *nd)
 		if (nd->dentry != nd->mnt->mnt_root) {
 			dentry = dget(nd->dentry->d_parent);
 			spin_unlock(&dcache_lock);
+			//之前的dentry结构的使用计数减一，然后立即指向新的dentry结构。
 			dput(nd->dentry);
 			//向上跳一层。
 			nd->dentry = dentry;
@@ -452,14 +455,20 @@ int path_walk(const char * name, struct nameidata *nd)
 {
 	/*
 	 * 根据给定的路径名name的指引进行搜索。
+	 * @name: 路径名，已经存储在内核空间的页面中。
+	 * @nd: 返回结构。
 	 */
 	struct dentry *dentry;
 	struct inode *inode;
 	int err;
 	unsigned int lookup_flags = nd->flags;
 
+	//过滤掉所有的‘/’，类似于//////usr/bin/...，在解析中时允许的。
 	while (*name=='/')
 		name++;
+	//过滤掉‘/’后，如果没有内容，说明给定路径名只有‘/’，相当于只有一个’/‘的情况。
+	//跳转到return_base后，直接返回0，表示路径搜索成功。因为之前对nameidata结构
+	//初始化时，已经将结果写入结构中。
 	if (!*name)
 		goto return_base;
 
@@ -469,6 +478,7 @@ int path_walk(const char * name, struct nameidata *nd)
 		lookup_flags = LOOKUP_FOLLOW;
 
 	/* At this point we know we have a real path component. */
+	//接下来进入路径搜索的主要部分。
 	for(;;) {
 		unsigned long hash;
 		struct qstr this;//用来存放路径名中当前节点的hash值及节点名。
@@ -577,6 +587,7 @@ last_with_slashes:
 		//所以在这里设置两个标志位。
 		lookup_flags |= LOOKUP_FOLLOW | LOOKUP_DIRECTORY;
 last_component:
+		//LOOKUP_PARENT表示寻找路径的父目录。
 		if (lookup_flags & LOOKUP_PARENT)
 			goto lookup_parent;
 		if (this.name[0] == '.') switch (this.len) {
@@ -585,6 +596,7 @@ last_component:
 			case 2:	
 				if (this.name[1] != '.')
 					break;
+				//this.name为..的情况。
 				follow_dotdot(nd);
 				inode = nd->dentry->d_inode;
 				/* fallthrough */
@@ -733,8 +745,12 @@ int path_init(const char *name, unsigned int flags, struct nameidata *nd)
 {
 	nd->last_type = LAST_ROOT; /* if there are only slashes... */
 	nd->flags = flags;
+	//路径从‘/’开始，形如/usr/bin/...，即绝对地址。
 	if (*name=='/')
 		return walk_init_root(name,nd);
+	//剩下的就是相对地址的情况了，直接根据当前进程信息赋值即可。
+	//注意！！！读取公共数据的时候，加读锁。读锁未被释放时不允许修改
+	//锁定的信息。
 	read_lock(&current->fs->lock);
 	nd->mnt = mntget(current->fs->pwdmnt);
 	nd->dentry = dget(current->fs->pwd);
