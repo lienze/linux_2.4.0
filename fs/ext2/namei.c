@@ -61,7 +61,9 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 					     const char * const name, int namelen,
 					     struct ext2_dir_entry_2 ** res_dir)
 {
-	/* 从磁盘上找到并读入dir节点的目录项。 */
+	/*
+	 * 从磁盘上读入并找到dir节点下指定的目录项。
+	 */
 	struct super_block * sb;
 	struct buffer_head * bh_use[NAMEI_RA_SIZE];
 	struct buffer_head * bh_read[NAMEI_RA_SIZE];
@@ -76,9 +78,12 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 
 	memset (bh_use, 0, sizeof (bh_use));
 	toread = 0;
+	//NAMEI_RA_SIZE == 8
 	for (block = 0; block < NAMEI_RA_SIZE; ++block) {
 		struct buffer_head * bh;
 
+		//根据文件逻辑记录块的索引，计算堆砌当前记录块需要的字节数，
+		//再检查是否超出了文件的容量。
 		if ((block << EXT2_BLOCK_SIZE_BITS (sb)) >= dir->i_size)
 			break;
 		//通过调用ext2_getblk从缓冲着的记录快中找到给定目录文件的开头8个逻辑块。
@@ -176,15 +181,18 @@ static struct dentry *ext2_lookup(struct inode * dir, struct dentry *dentry)
 {
 	/*
 	 * ext2文件系统在磁盘上搜索过程的具体实现。
+	 * @dir: 指向父目录的inode结构。
+	 * @dentry: 已经创建并简单初始化的指向dentry结构的指针。
 	 */
 	struct inode * inode;
 	struct ext2_dir_entry_2 * de;
 	struct buffer_head * bh;
 
+	//目录项的名字不能太长，仅针对ext2系统。
 	if (dentry->d_name.len > EXT2_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
 
-	/* 在磁盘上找到并读入当前节点的目录项 */
+	//在磁盘上读入并找到指定节点的目录项。
 	bh = ext2_find_entry (dir, dentry->d_name.name, dentry->d_name.len, &de);
 	inode = NULL;
 	if (bh) {

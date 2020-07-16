@@ -281,6 +281,8 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, i
 {
 	/*
 	 * 通过磁盘查找dentry。
+	 * @parent: 指向目标的父目录。
+	 * @name: 欲查找的目录名。
 	 */
 	struct dentry * result;
 	struct inode *dir = parent->d_inode;

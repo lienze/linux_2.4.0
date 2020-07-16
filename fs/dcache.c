@@ -604,7 +604,7 @@ void shrink_dcache_memory(int priority, unsigned int gfp_mask)
  
 struct dentry * d_alloc(struct dentry * parent, const struct qstr *name)
 {
-	/* 建立一个dentry结构，分配空间并初始化 */
+	/* 建立一个dentry结构，分配空间并进行简单的初始化。 */
 	char * str;
 	struct dentry *dentry;
 
@@ -612,6 +612,8 @@ struct dentry * d_alloc(struct dentry * parent, const struct qstr *name)
 	if (!dentry)
 		return NULL;
 
+	//目录项的名字如果大于15，则另外申请空间记录，如果小于等于15，
+	//则直接记录到目录项中。
 	if (name->len > DNAME_INLINE_LEN-1) {
 		str = kmalloc(NAME_ALLOC_LEN(name->len), GFP_KERNEL);
 		if (!str) {
@@ -639,6 +641,7 @@ struct dentry * d_alloc(struct dentry * parent, const struct qstr *name)
 	INIT_LIST_HEAD(&dentry->d_lru);
 	INIT_LIST_HEAD(&dentry->d_subdirs);
 	INIT_LIST_HEAD(&dentry->d_alias);
+	//挂在到父目录上。
 	if (parent) {
 		dentry->d_parent = dget(parent);
 		dentry->d_sb = parent->d_sb;
@@ -751,6 +754,7 @@ struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 			if (parent->d_op->d_compare(parent, &dentry->d_name, name))
 				continue;
 		} else {
+			//vfs默认比较方法。
 			if (dentry->d_name.len != len)
 				continue;
 			if (memcmp(dentry->d_name.name, str, len))
@@ -758,7 +762,7 @@ struct dentry * d_lookup(struct dentry * parent, struct qstr * name)
 		}
 		/* 至此，通过前面的所有检查，找到目标目录项 */
 		__dget_locked(dentry);
-		/* 设置d_flags标志位中的DCACHE_REFERENCED位为1 */
+		/* 设置d_flags标志位中的DCACHE_REFERENCED位为1，表示最近刚刚使用过。 */
 		dentry->d_flags |= DCACHE_REFERENCED;
 		spin_unlock(&dcache_lock);
 		return dentry;

@@ -667,13 +667,19 @@ changed:
 
 struct buffer_head * ext2_getblk(struct inode * inode, long block, int create, int * err)
 {
+	/*
+	 * 在缓存中查找inode节点下的block记录块。
+	 */
 	struct buffer_head dummy;
 	int error;
 
 	dummy.b_state = 0;
 	dummy.b_blocknr = -1000;
+	//此处inode通常指向目录，block指向目录中存储的目录项。
+	//读取出的记录块存储在dummy结构中。
 	error = ext2_get_block(inode, block, &dummy, create);
 	*err = error;
+	//dummy可同时为BH_New与BH_Mapped两种状态。
 	if (!error && buffer_mapped(&dummy)) {
 		struct buffer_head *bh;
 		bh = getblk(dummy.b_dev, dummy.b_blocknr, inode->i_sb->s_blocksize);
