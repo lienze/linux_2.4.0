@@ -434,12 +434,18 @@ static inline void follow_dotdot(struct nameidata *nd)
 			spin_unlock(&dcache_lock);
 			break;
 		}
+		
+		//如果运行至此，应满足以下条件：
+		//nd->dentry == nd->mnt->mnt_root && parent != nd->mnt
+		//这种情景通常出现在跨越挂载点。
 		mntget(parent);
 		dentry=dget(nd->mnt->mnt_mountpoint);
 		spin_unlock(&dcache_lock);
+		//以下均为局部变量之间的赋值，无需使用锁。
 		dput(nd->dentry);
 		nd->dentry = dentry;
 		mntput(nd->mnt);
+		//注意！！！这里开始，指向挂载点的上一级。
 		nd->mnt = parent;
 	}
 }
@@ -463,7 +469,7 @@ int path_walk(const char * name, struct nameidata *nd)
 	int err;
 	unsigned int lookup_flags = nd->flags;
 
-	//过滤掉所有的‘/’，类似于//////usr/bin/...，在解析中时允许的。
+	//过滤掉所有的‘/’，类似于//////usr/bin/...，在解析时是允许的。
 	while (*name=='/')
 		name++;
 	//过滤掉‘/’后，如果没有内容，说明给定路径名只有‘/’，相当于只有一个’/‘的情况。
@@ -534,7 +540,7 @@ int path_walk(const char * name, struct nameidata *nd)
 			if (err < 0)
 				break;
 		}
-		//先通过cached_lookup函数在内存中寻找该节点，若找不到，则到磁盘上去找。
+		//先通过cached_lookup函数在内存中寻找目标结点，若找不到，则到磁盘上去找。
 		/* This does the actual lookups.. */
 		dentry = cached_lookup(nd->dentry, &this, LOOKUP_CONTINUE);
 		if (!dentry) {
