@@ -87,6 +87,7 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 		if ((block << EXT2_BLOCK_SIZE_BITS (sb)) >= dir->i_size)
 			break;
 		//通过调用ext2_getblk从缓冲着的记录快中找到给定目录文件的开头8个逻辑块。
+		//即8次循环，每次读出一个记录块。
 		bh = ext2_getblk (dir, block, 0, &err);
 		bh_use[block] = bh;
 		/* 如果存在缓冲区中的内容与磁盘上的内容不一致，那么将bh */
@@ -126,9 +127,9 @@ static struct buffer_head * ext2_find_entry (struct inode * dir,
 		/* 此刻，开始对记录块中的内容进行搜索。 */
 		de = (struct ext2_dir_entry_2 *) bh->b_data;
 		dlimit = bh->b_data + sb->s_blocksize;
-		/* 变量de为指向目录项的指针，变量dlimit为当前记录块的最大地址 */
-		/* 搜索时不可以超越最大地址，另外，de每次移动，都指向下一个目 */
-		/* 录项的地址 */
+		/* 变量de为指向目录项的指针，变量dlimit为当前记录块的最大地址。 */
+		/* 搜索时不可以超越最大地址，另外，de每次移动，都指向下一个目录 */
+		/* 项的地址。 */
 		while ((char *) de < dlimit) {
 			/* this code is executed quadratically often */
 			/* do minimal checking `by hand' */

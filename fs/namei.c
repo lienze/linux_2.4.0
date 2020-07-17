@@ -324,6 +324,7 @@ static struct dentry * real_lookup(struct dentry * parent, struct qstr * name, i
 	 * Uhhuh! Nasty case: the cache was re-populated while
 	 * we waited on the semaphore. Need to revalidate.
 	 */
+	//离开临界区。
 	up(&dir->i_sem);
 	if (result->d_op && result->d_op->d_revalidate) {
 		if (!result->d_op->d_revalidate(result, flags) && !d_invalidate(result)) {
