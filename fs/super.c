@@ -93,6 +93,10 @@ static void put_filesystem(struct file_system_type *fs)
 
 static struct file_system_type **find_filesystem(const char *name)
 {
+	/*
+	 * 在系统中的file_systems表中查找已经注册过的文件系统。
+	 * @name: 文件系统名字。
+	 */
 	struct file_system_type **p;
 	for (p=&file_systems; *p; p=&(*p)->next)
 		if (strcmp((*p)->name,name) == 0)
@@ -115,6 +119,9 @@ static struct file_system_type **find_filesystem(const char *name)
  
 int register_filesystem(struct file_system_type * fs)
 {
+	/*
+	 * 注册文件系统。
+	 */
 	int res = 0;
 	struct file_system_type ** p;
 
@@ -986,6 +993,9 @@ static int do_remount_sb(struct super_block *sb, int flags, char *data)
 
 struct vfsmount *kern_mount(struct file_system_type *type)
 {
+	/*
+	 * 为文件系统创建超级块对象和vfs_mount对象。
+	 */
 	kdev_t dev = get_unnamed_dev();
 	struct super_block *sb;
 	struct vfsmount *mnt;
