@@ -199,11 +199,15 @@ static struct file_operations bad_sock_fops = {
 
 void init_special_inode(struct inode *inode, umode_t mode, int rdev)
 {
+	/*
+	 * 向inode结构中写入设备号。
+	 */
 	inode->i_mode = mode;
 	if (S_ISCHR(mode)) {
 		inode->i_fop = &def_chr_fops;
 		inode->i_rdev = to_kdev_t(rdev);
 	} else if (S_ISBLK(mode)) {
+		//块设备的操作接口设置。
 		inode->i_fop = &def_blk_fops;
 		inode->i_rdev = to_kdev_t(rdev);
 		inode->i_bdev = bdget(rdev);

@@ -44,6 +44,7 @@ static struct module kernel_module =
 	name: 			"",
 	uc:	 		{ATOMIC_INIT(1)},
 	flags:			MOD_RUNNING,
+	//内核符号表的起始地址。
 	syms:			__start___ksymtab,
 	ex_table_start:		__start___ex_table,
 	ex_table_end:		__stop___ex_table,
@@ -875,6 +876,12 @@ asmlinkage long
 sys_query_module(const char *name_user, int which, char *buf, size_t bufsize,
 		 size_t *ret)
 {
+	/*
+	 * 模块向内核询问所需要的符号在内核中的地址。
+	 * @name_user: 指向模块名的指针。
+	 * @which: 表示查询的内容。
+	 * @buf: 指向查询结果的缓冲区。
+	 */
 	struct module *mod;
 	int err;
 

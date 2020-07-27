@@ -36,12 +36,18 @@ struct kernel_sym
 
 struct module_symbol
 {
+	/*
+	 * 用于描述一个符号，包括符号名name及所在地址。
+	 */
 	unsigned long value;
 	const char *name;
 };
 
 struct module_ref
 {
+	/*
+	 * 用于描述模块间的依赖关系。
+	 */
 	struct module *dep;	/* "parent" pointer */
 	struct module *ref;	/* "child" pointer */
 	struct module_ref *next_ref;
@@ -53,8 +59,11 @@ struct module_persist;
 struct module
 {
 	unsigned long size_of_struct;	/* == sizeof(module) */
+	//指向下一个模块，连接形成链状结构。
 	struct module *next;
+	//模块名。
 	const char *name;
+	//模块大小。
 	unsigned long size;
 
 	union
@@ -65,13 +74,19 @@ struct module
 
 	unsigned long flags;		/* AUTOCLEAN et al */
 
+	//指明了module_symbol结构数组的大小。
 	unsigned nsyms;
+	//指明module_ref结构数组的大小。
 	unsigned ndeps;
 
+	//指向一个module_symbol结构数组。
 	struct module_symbol *syms;
+	//指向一个module_ref结构数组。
 	struct module_ref *deps;
 	struct module_ref *refs;
+	//指向模块中的init_module()函数。
 	int (*init)(void);
+	//指向模块中的cleanup_module()函数。
 	void (*cleanup)(void);
 	const struct exception_table_entry *ex_table_start;
 	const struct exception_table_entry *ex_table_end;

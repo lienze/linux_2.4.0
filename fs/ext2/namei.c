@@ -416,6 +416,10 @@ static int ext2_create (struct inode * dir, struct dentry * dentry, int mode)
 
 static int ext2_mknod (struct inode * dir, struct dentry *dentry, int mode, int rdev)
 {
+	/*
+	 * ext2文件系统创建设备节点。
+	 */
+	//创建设备的inode节点。
 	struct inode * inode = ext2_new_inode (dir, mode);
 	int err = PTR_ERR(inode);
 
@@ -423,12 +427,14 @@ static int ext2_mknod (struct inode * dir, struct dentry *dentry, int mode, int 
 		return err;
 
 	inode->i_uid = current->fsuid;
+	//将设备号写入到inode数据结构中。
 	init_special_inode(inode, mode, rdev);
 	err = ext2_add_entry (dir, dentry->d_name.name, dentry->d_name.len, 
 			     inode);
 	if (err)
 		goto out_no_entry;
 	mark_inode_dirty(inode);
+	//使内存中的目录项dentry结构与inode结构关联。
 	d_instantiate(dentry, inode);
 	return 0;
 

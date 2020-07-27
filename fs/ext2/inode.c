@@ -1207,6 +1207,9 @@ bad_inode:
 
 static int ext2_update_inode(struct inode * inode, int do_sync)
 {
+	/*
+	 * 更新磁盘上的索引节点。
+	 */
 	struct buffer_head * bh;
 	struct ext2_inode * raw_inode;
 	unsigned long block_group;

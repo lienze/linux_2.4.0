@@ -1275,11 +1275,18 @@ fail:
 
 int vfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
 {
+	/*
+	 * 创建特殊文件。
+	 * @dir: 指向待创建特殊文件的父节点的inode结构指针。
+	 * @dentry: 指向待创建设备文件节点的目录项数据结构。
+	 */
 	int error = -EPERM;
 
+	//根据当前进程的访问权限屏蔽位，过滤用户参数mode中的位数据。
 	mode &= ~current->fs->umask;
 
 	down(&dir->i_zombie);
+	//检查节点权限。
 	if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
 		goto exit_lock;
 
@@ -1293,6 +1300,7 @@ int vfs_mknod(struct inode *dir, struct dentry *dentry, int mode, dev_t dev)
 
 	DQUOT_INIT(dir);
 	lock_kernel();
+	//ext2文件系统执行函数ext2_mknod()。
 	error = dir->i_op->mknod(dir, dentry, mode, dev);
 	unlock_kernel();
 exit_lock:
@@ -1304,6 +1312,9 @@ exit_lock:
 
 asmlinkage long sys_mknod(const char * filename, int mode, dev_t dev)
 {
+	/*
+	 * 创建代表设备的特殊文件。
+	 */
 	int error = 0;
 	char * tmp;
 	struct dentry * dentry;
@@ -1324,9 +1335,11 @@ asmlinkage long sys_mknod(const char * filename, int mode, dev_t dev)
 	if (!IS_ERR(dentry)) {
 		switch (mode & S_IFMT) {
 		case 0: case S_IFREG:
+			//创建普通文件。
 			error = vfs_create(nd.dentry->d_inode,dentry,mode);
 			break;
 		case S_IFCHR: case S_IFBLK: case S_IFIFO: case S_IFSOCK:
+			//创将特殊文件。
 			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,dev);
 			break;
 		case S_IFDIR:

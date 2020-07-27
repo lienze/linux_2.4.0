@@ -428,6 +428,9 @@ static struct block_device *bdfind(dev_t dev, struct list_head *head)
 
 struct block_device *bdget(dev_t dev)
 {
+	/*
+	 * 根据设备号找到或者创建给定设备的block_device数据结构。
+	 */
 	struct list_head * head = bdev_hashtable + hash(dev);
 	struct block_device *bdev, *new_bdev;
 	spin_lock(&bdev_lock);
