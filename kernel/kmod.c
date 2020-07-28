@@ -85,12 +85,16 @@ use_init_fs_context(void)
 
 int exec_usermodehelper(char *program_path, char *argv[], char *envp[])
 {
+	/*
+	 * exec_modprobe函数的主体函数。
+	 */
 	int i;
 	struct task_struct *curtask = current;
 
 	curtask->session = 1;
 	curtask->pgrp = 1;
 
+	//从init_task结构中直接继承其根目录等资源。
 	use_init_fs_context();
 
 	/* Prevent parent user process from sending signals to child.
@@ -129,6 +133,7 @@ int exec_usermodehelper(char *program_path, char *argv[], char *envp[])
 	set_fs(KERNEL_DS);
 
 	/* Go, go, go... */
+	//调用execve()函数执行/sbin/modprobe
 	if (execve(program_path, argv, envp) < 0)
 		return -errno;
 	return 0;
@@ -147,6 +152,7 @@ static int exec_modprobe(void * module_name)
 	char *argv[] = { modprobe_path, "-s", "-k", "--", (char*)module_name, NULL };
 	int ret;
 
+	//相当于执行命令：/sbin/modprobe -s -k module_name
 	ret = exec_usermodehelper(modprobe_path, argv, envp);
 	if (ret) {
 		printk(KERN_ERR
@@ -172,6 +178,9 @@ static int exec_modprobe(void * module_name)
  
 int request_module(const char * module_name)
 {
+	/*
+	 * 内核主动安装模块。
+	 */
 	pid_t pid;
 	int waitpid_result;
 	sigset_t tmpsig;
@@ -222,6 +231,7 @@ int request_module(const char * module_name)
 	recalc_sigpending(current);
 	spin_unlock_irq(&current->sigmask_lock);
 
+	//使用waitpid使当前进程进入睡眠。
 	waitpid_result = waitpid(pid, NULL, __WCLONE);
 	atomic_dec(&kmod_concurrent);
 

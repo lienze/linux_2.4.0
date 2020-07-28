@@ -281,13 +281,19 @@ put_mod_name(char *buf)
 asmlinkage unsigned long
 sys_create_module(const char *name_user, size_t size)
 {
+	/*
+	 * 创建模块的系统调用。
+	 * @size: 模块映像本身以及一个module结构的大小。
+	 */
 	char *name;
 	long namelen, error;
 	struct module *mod;
 
+	//只有特权用户才能执行创建模块的命令。
 	if (!capable(CAP_SYS_MODULE))
 		return -EPERM;
 	lock_kernel();
+	//从用户空间拷贝模块名到内核空间。
 	if ((namelen = get_mod_name(name_user, &name)) < 0) {
 		error = namelen;
 		goto err0;
@@ -300,6 +306,7 @@ sys_create_module(const char *name_user, size_t size)
 		error = -EEXIST;
 		goto err1;
 	}
+	//给模块分配空间。
 	if ((mod = (struct module *)module_map(size)) == NULL) {
 		error = -ENOMEM;
 		goto err1;
@@ -307,13 +314,16 @@ sys_create_module(const char *name_user, size_t size)
 
 	memset(mod, 0, sizeof(*mod));
 	mod->size_of_struct = sizeof(*mod);
+	//将新创建的mod链接到全局链表module_list的头部。
 	mod->next = module_list;
 	mod->name = (char *)(mod + 1);
 	mod->size = size;
+	//!!!注意!!!这里的mod+1，表示指针越过一个module结构的大小。
 	memcpy((char*)(mod+1), name, namelen+1);
 
 	put_mod_name(name);
 
+	//更新全局链表module_list。
 	module_list = mod;	/* link it in */
 
 	error = (long) mod;
@@ -332,6 +342,11 @@ err0:
 asmlinkage long
 sys_init_module(const char *name_user, struct module *mod_user)
 {
+	/*
+	 * 初始化模块。
+	 * @name_user: 模块名。
+	 * @mod_user: 指向由create_module系统调用新建的module结构。
+	 */
 	struct module mod_tmp, *mod;
 	char *name, *n_name, *name_tmp = NULL;
 	long namelen, n_namelen, i, error;
@@ -366,6 +381,7 @@ sys_init_module(const char *name_user, struct module *mod_user)
 
 	/* Hold the current contents while we play with the user's idea
 	   of righteousness.  */
+	//将内核空间中的module结构暂时保存在堆栈中。
 	mod_tmp = *mod;
 	name_tmp = kmalloc(strlen(mod->name) + 1, GFP_KERNEL);	/* Where's kstrdup()? */
 	if (name_tmp == NULL) {
@@ -390,7 +406,7 @@ sys_init_module(const char *name_user, struct module *mod_user)
 	}
 
 	/* Make sure all interesting pointers are sane.  */
-
+	//使用mod_bound函数，判断用户空间提供的指针是否在模块映像的范围内。
 	if (!mod_bound(mod->name, namelen, mod)) {
 		printk(KERN_ERR "init_module: mod->name out of bounds.\n");
 		goto err2;
@@ -483,7 +499,7 @@ sys_init_module(const char *name_user, struct module *mod_user)
 	}
 
 	/* Ok, that's about all the sanity we can stomach; copy the rest.  */
-
+	//以上完成了模块所有内容的检验，接下来将模块的映像复制到内核空间了。
 	if (copy_from_user((char *)mod+mod_user_size,
 			   (char *)mod_user+mod_user_size,
 			   mod->size-mod_user_size)) {
@@ -491,6 +507,7 @@ sys_init_module(const char *name_user, struct module *mod_user)
 		goto err3;
 	}
 
+	//i386处理器来讲，这一步是个空操作。
 	if (module_arch_init(mod))
 		goto err3;
 
@@ -540,6 +557,7 @@ sys_init_module(const char *name_user, struct module *mod_user)
 	put_mod_name(name);
 
 	/* Initialize the module.  */
+	//启动执行模块的init_module()函数。
 	mod->flags |= MOD_INITIALIZING;
 	atomic_set(&mod->uc.usecount,1);
 	if (mod->init && (error = mod->init()) != 0) {
@@ -587,6 +605,9 @@ int try_inc_mod_count(struct module *mod)
 asmlinkage long
 sys_delete_module(const char *name_user)
 {
+	/*
+	 * 删除模块系统调用函数。
+	 */
 	struct module *mod, *next;
 	char *name;
 	long error;
@@ -1004,6 +1025,10 @@ out:
 struct module *
 find_module(const char *name)
 {
+	/*
+	 * 在module_list全局链表里查找指定名字的模块。
+	 * @name: 将要查找的模块名。
+	 */
 	struct module *mod;
 
 	for (mod = module_list; mod ; mod = mod->next) {
@@ -1023,6 +1048,9 @@ find_module(const char *name)
 void
 free_module(struct module *mod, int tag_freed)
 {
+	/*
+	 * 删除模块的主要执行过程。
+	 */
 	struct module_ref *dep;
 	unsigned i;
 
@@ -1058,7 +1086,7 @@ free_module(struct module *mod, int tag_freed)
 	}
 
 	/* And free the memory.  */
-
+	//将模块所占用的所有内存作为一个整体释放。
 	module_unmap(mod);
 }
 
