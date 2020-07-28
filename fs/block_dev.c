@@ -493,6 +493,9 @@ int get_blkdev_list(char * p)
 */
 const struct block_device_operations * get_blkfops(unsigned int major)
 {
+	/*
+	 * 根据主设备号，获取具体的块设备类型的block_device_operations数据结构。
+	 */
 	const struct block_device_operations *ret = NULL;
 
 	/* major 0 is used for non-device mounts */
@@ -646,10 +649,15 @@ int blkdev_get(struct block_device *bdev, mode_t mode, unsigned flags, int kind)
 
 int blkdev_open(struct inode * inode, struct file * filp)
 {
+	/*
+	 * 打开块设备文件。
+	 */
 	int ret = -ENXIO;
 	struct block_device *bdev = inode->i_bdev;
 	down(&bdev->bd_sem);
 	lock_kernel();
+	//确定具体操作的block_device_operations指针。
+	//get_blkfops函数实现了寻找具体块设备类型的block_device_operations结构。
 	if (!bdev->bd_op)
 		bdev->bd_op = get_blkfops(MAJOR(inode->i_rdev));
 	if (bdev->bd_op) {
@@ -710,6 +718,7 @@ static int blkdev_ioctl(struct inode *inode, struct file *file, unsigned cmd,
 }
 
 struct file_operations def_blk_fops = {
+	//块设备的file_operations数据机构。
 	open:		blkdev_open,
 	release:	blkdev_close,
 	llseek:		block_llseek,

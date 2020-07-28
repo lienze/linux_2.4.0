@@ -1831,6 +1831,11 @@ search:
 
 static int ide_open (struct inode * inode, struct file * filp)
 {
+	/*
+	 * ide接口的块设备打开函数。
+	 */
+
+	//设备控制块结构。
 	ide_drive_t *drive;
 	int rc;
 

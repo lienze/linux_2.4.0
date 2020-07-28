@@ -669,6 +669,8 @@ struct file *dentry_open(struct dentry *dentry, struct vfsmount *mnt, int flags)
 		file_move(f, &inode->i_sb->s_files);
 	if (f->f_op && f->f_op->open) {
 		/* 正式开始打开文件，这里根据不同的文件系统有不同的操作。 */
+		//对于块设备文件，调用blkdev_open函数。
+		//对于ext2文件系统上的文件，调用ext2_open_file函数。
 		error = f->f_op->open(inode,f);
 		if (error)
 			goto cleanup_all;

@@ -210,6 +210,8 @@ void init_special_inode(struct inode *inode, umode_t mode, int rdev)
 		//块设备的操作接口设置。
 		inode->i_fop = &def_blk_fops;
 		inode->i_rdev = to_kdev_t(rdev);
+		//设置inode结构中，专用于块设备的指针i_bdev。
+		//i_bdev指向代表具体块设备的block_device数据机构。
 		inode->i_bdev = bdget(rdev);
 	} else if (S_ISFIFO(mode))
 		inode->i_fop = &def_fifo_fops;
