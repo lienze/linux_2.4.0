@@ -1839,9 +1839,11 @@ static int ide_open (struct inode * inode, struct file * filp)
 	ide_drive_t *drive;
 	int rc;
 
+	//根据设备号找到对应的数据结构并返回其指针。
 	if ((drive = get_info_ptr(inode->i_rdev)) == NULL)
 		return -ENXIO;
 	MOD_INC_USE_COUNT;
+	//这种情况说明由于某些原因，未能完成初始化，需要再试一次。
 	if (drive->driver == NULL)
 		ide_driver_module();
 #ifdef CONFIG_KMOD

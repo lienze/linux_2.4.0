@@ -951,6 +951,11 @@ void generic_make_request (int rw, struct buffer_head * bh)
  */
 void submit_bh(int rw, struct buffer_head * bh)
 {
+	/*
+	 * 提交读写请求。
+	 * @rw: 读/写方式。
+	 * @bh: 待读/写的内容。
+	 */
 	if (!test_bit(BH_Lock, &bh->b_state))
 		BUG();
 
@@ -963,6 +968,7 @@ void submit_bh(int rw, struct buffer_head * bh)
 	bh->b_rdev = bh->b_dev;
 	bh->b_rsector = bh->b_blocknr * (bh->b_size>>9);
 
+	//操作主体函数。
 	generic_make_request(rw, bh);
 
 	switch (rw) {
@@ -1017,6 +1023,12 @@ static void end_buffer_io_sync(struct buffer_head *bh, int uptodate)
 
 void ll_rw_block(int rw, int nr, struct buffer_head * bhs[])
 {
+	/*
+	 * 记录块的读写函数。
+	 * @rw: 要进行的操作。
+	 * @nr: bhs数组的大小。
+	 * @bhs: 指向一个缓冲区头部buffer_head的指针数组。
+	 */
 	unsigned int major;
 	int correct_size;
 	int i;
@@ -1082,6 +1094,7 @@ void ll_rw_block(int rw, int nr, struct buffer_head * bhs[])
 			continue;
 		}
 
+		//此处进行读写请求的提交。
 		submit_bh(rw, bh);
 	}
 	return;

@@ -165,6 +165,9 @@ ssize_t block_write(struct file * filp, const char * buf,
 
 ssize_t block_read(struct file * filp, char * buf, size_t count, loff_t *ppos)
 {
+	/*
+	 * 块设备的读取函数。
+	 */
 	struct inode * inode = filp->f_dentry->d_inode;
 	size_t block;
 	loff_t offset;
