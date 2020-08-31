@@ -151,6 +151,9 @@ static inline void init_waitqueue_entry(wait_queue_t *q,
 
 static inline int waitqueue_active(wait_queue_head_t *q)
 {
+	/*
+	 * 检查进程是否在等待队列中睡眠。
+	 */
 #if WAITQUEUE_DEBUG
 	if (!q)
 		WQ_BUG();

@@ -149,6 +149,7 @@ void __swap_free(swp_entry_t entry, unsigned short count)
 {
 	/*
 	 * 释放磁盘页面函数。
+	 * @count: 表示有几个使用者释放该页面。
 	 */
 	struct swap_info_struct * p;
 	unsigned long offset, type;

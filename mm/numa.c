@@ -94,6 +94,10 @@ static struct page * alloc_pages_pgdat(pg_data_t *pgdat, int gfp_mask,
  */
 struct page * alloc_pages(int gfp_mask, unsigned long order)
 {
+	/*
+	 * numa版本的分配页面函数。
+	 * @order: 指明分配物理块的大小，1，2，4...
+	 */
 	struct page *ret = 0;
 	pg_data_t *start, *temp;
 #ifndef CONFIG_NUMA

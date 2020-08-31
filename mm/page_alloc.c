@@ -193,6 +193,7 @@ static struct page * rmqueue(zone_t *zone, unsigned long order)
 			MARK_USED(index, curr_order, area);
 			zone->free_pages -= 1 << order;
 
+			//将分配到的大块中剩余部分分解为小块链入相应的队列。
 			page = expand(zone, page, index, order, curr_order, area);
 			spin_unlock_irqrestore(&zone->lock, flags);
 
@@ -272,6 +273,9 @@ static struct page * __alloc_pages_limit(zonelist_t *zonelist,
  */
 struct page * __alloc_pages(zonelist_t *zonelist, unsigned long order)
 {
+	/*
+	 * UMA结构的页面分配函数。
+	 */
 	zone_t **zone;
 	int direct_reclaim = 0;
 	unsigned int gfp_mask = zonelist->gfp_mask;
@@ -280,6 +284,7 @@ struct page * __alloc_pages(zonelist_t *zonelist, unsigned long order)
 	/*
 	 * Allocations put pressure on the VM subsystem.
 	 */
+	//表示内存页面管理所受的压力，分配内存时递增，归还时递减。
 	memory_pressure++;
 
 	/*
@@ -294,6 +299,9 @@ struct page * __alloc_pages(zonelist_t *zonelist, unsigned long order)
 	 * Can we take pages directly from the inactive_clean
 	 * list?
 	 */
+	//order==0 要求分配的仅是单个页面。
+	//gfp_mask & __GFP_WAIT 要求等待分配完成。
+	//!(current->flags &PF_MEMALLOC) 用于非管理目的。
 	if (order == 0 && (gfp_mask & __GFP_WAIT) &&
 			!(current->flags & PF_MEMALLOC))
 		direct_reclaim = 1;
@@ -329,11 +337,13 @@ try_again:
 			BUG();
 
 		if (z->free_pages >= z->pages_low) {
+			//试图从一个页面管理区分配若干连续的内存页面。
 			page = rmqueue(z, order);
 			if (page)
 				return page;
 		} else if (z->free_pages < z->pages_min &&
 					waitqueue_active(&kreclaimd_wait)) {
+				//唤醒reclaimd_wait内核线程。
 				wake_up_interruptible(&kreclaimd_wait);
 		}
 	}

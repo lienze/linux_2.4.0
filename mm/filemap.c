@@ -481,14 +481,20 @@ void filemap_fdatawait(struct address_space * mapping)
  */
 void add_to_page_cache_locked(struct page * page, struct address_space *mapping, unsigned long index)
 {
+	/*
+	 * 页面page加入到三个队列中。
+	 */
 	if (!PageLocked(page))
 		BUG();
 
 	page_cache_get(page);
 	spin_lock(&pagecache_lock);
 	page->index = index;
+	//加入swapper_sapce中的clean_pages队列。
 	add_page_to_inode_queue(mapping, page);
+	//将page加入page_hash_table表队列中。
 	add_page_to_hash_queue(page, page_hash(mapping, index));
+	//加入LRU队列active_list中。
 	lru_cache_add(page);
 	spin_unlock(&pagecache_lock);
 }

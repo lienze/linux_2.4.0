@@ -53,6 +53,10 @@ void show_swap_cache_info(void)
 
 void add_to_swap_cache(struct page *page, swp_entry_t entry)
 {
+	/*
+	 * 内核在为某个需要换入的页面分配了一个空闲内存页面后，将
+	 * page结构链入相应的队列。
+	 */
 	unsigned long flags;
 
 #ifdef SWAP_CACHE_INFO
