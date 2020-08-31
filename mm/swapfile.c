@@ -84,6 +84,9 @@ static inline int scan_swap_map(struct swap_info_struct *si, unsigned short coun
 
 swp_entry_t __get_swap_page(unsigned short count)
 {
+	/*
+	 * 分配一个磁盘页面。
+	 */
 	struct swap_info_struct * p;
 	unsigned long offset;
 	swp_entry_t entry;
@@ -144,6 +147,9 @@ bad_count:
  */
 void __swap_free(swp_entry_t entry, unsigned short count)
 {
+	/*
+	 * 释放磁盘页面函数。
+	 */
 	struct swap_info_struct * p;
 	unsigned long offset, type;
 

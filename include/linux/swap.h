@@ -47,6 +47,9 @@ union swap_header {
 #define SWAP_MAP_BAD	0x8000
 
 struct swap_info_struct {
+	/*
+	 * 描述和管理用于页面交换的文件或设备。
+	 */
 	unsigned int flags;
 	kdev_t swap_device;
 	spinlock_t sdev_lock;

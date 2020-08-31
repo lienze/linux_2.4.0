@@ -102,6 +102,7 @@ extern unsigned long empty_zero_page[1024];
  * implements both the traditional 2-level x86 page tables and the
  * newer 3-level PAE-mode page tables.
  */
+//x86体系结构中，开启PAE时使用三层映射结构，未开启时使用二层映射结构。
 #ifndef __ASSEMBLY__
 #if CONFIG_X86_PAE
 # include <asm/pgtable-3level.h>

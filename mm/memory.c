@@ -1060,6 +1060,10 @@ static int do_swap_page(struct mm_struct * mm,
  */
 static int do_anonymous_page(struct mm_struct * mm, struct vm_area_struct * vma, pte_t *page_table, int write_access, unsigned long addr)
 {
+	/*
+	 * 缺页异常时，默认分配物理内存的函数。
+	 * @write_access: 0只读，非0写。
+	 */
 	struct page *page = NULL;
 	pte_t entry = pte_wrprotect(mk_pte(ZERO_PAGE(addr), vma->vm_page_prot));
 	if (write_access) {
