@@ -490,7 +490,7 @@ static inline int expand_stack(struct vm_area_struct * vma, unsigned long addres
 {
 	unsigned long grow;
 
-	address &= PAGE_MASK;
+	address &= PAGE_MASK;	//对其页面边界。
 	grow = (vma->vm_start - address) >> PAGE_SHIFT;
 	if (vma->vm_end - address > current->rlim[RLIMIT_STACK].rlim_cur ||
 	    ((vma->vm_mm->total_vm + grow) << PAGE_SHIFT) > current->rlim[RLIMIT_AS].rlim_cur)

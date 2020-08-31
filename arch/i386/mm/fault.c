@@ -148,9 +148,9 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 		goto bad_area;
 	if (vma->vm_start <= address)
 		goto good_area;
-	if (!(vma->vm_flags & VM_GROWSDOWN))
+	if (!(vma->vm_flags & VM_GROWSDOWN))	//若区间为自顶向下的，即堆栈区间，进行特殊处理。
 		goto bad_area;
-	if (error_code & 4) {
+	if (error_code & 4) {	//异常发生在用户空间时，检查地址是否紧挨堆栈指针所指地址。
 		/*
 		 * accessing the stack below %esp is always a bug.
 		 * The "+ 32" is there due to some instructions (like
@@ -160,7 +160,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 		if (address + 32 < regs->esp)
 			goto bad_area;
 	}
-	if (expand_stack(vma, address))
+	if (expand_stack(vma, address))	//扩展堆栈区间。
 		goto bad_area;
 /*
  * Ok, we have a good vm_area for this memory access, so

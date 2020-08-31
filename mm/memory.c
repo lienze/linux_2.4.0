@@ -1196,10 +1196,14 @@ static inline int handle_pte_fault(struct mm_struct *mm,
 int handle_mm_fault(struct mm_struct *mm, struct vm_area_struct * vma,
 	unsigned long address, int write_access)
 {
+	/*
+	 * 虚拟内存管理函数。
+	 */
 	int ret = -1;
 	pgd_t *pgd;
 	pmd_t *pmd;
 
+	//计算出指向该地址所属页面目录项的指针。
 	pgd = pgd_offset(mm, address);
 	pmd = pmd_alloc(pgd, address);
 
