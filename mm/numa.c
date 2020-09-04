@@ -96,6 +96,7 @@ struct page * alloc_pages(int gfp_mask, unsigned long order)
 {
 	/*
 	 * numa版本的分配页面函数。
+	 * @gfp_mask: 表明采用的分配策略。
 	 * @order: 指明分配物理块的大小，1，2，4...
 	 */
 	struct page *ret = 0;

@@ -150,8 +150,16 @@ static void __free_pages_ok (struct page *page, unsigned long order)
 static inline struct page * expand (zone_t *zone, struct page *page,
 	 unsigned long index, int low, int high, free_area_t * area)
 {
+	/*
+	 * 若分配的物理内存块大于需要分配的大小，则将多余出来的部分分解为小块，链入
+	 * 相应的队列。
+	 * @low: 所需物理块大小的order值。
+	 * @high: 当前分配来的，满足所需物理块的order值，通常比low值大。
+	 */
+	// 获取提供的页面数量。
 	unsigned long size = 1 << high;
 
+	//若分配到的大于所需要的页面，则将多余的进行分解，然后挂入相应队列。
 	while (high > low) {
 		if (BAD_RANGE(zone,page))
 			BUG();
@@ -159,6 +167,7 @@ static inline struct page * expand (zone_t *zone, struct page *page,
 		high--;
 		size >>= 1;
 		memlist_add_head(&(page)->list, &(area)->free_list);
+		//TODO:疑难函数，不明觉厉。
 		MARK_USED(index, high, area);
 		index += size;
 		page += size;
@@ -171,6 +180,11 @@ static inline struct page * expand (zone_t *zone, struct page *page,
 static FASTCALL(struct page * rmqueue(zone_t *zone, unsigned long order));
 static struct page * rmqueue(zone_t *zone, unsigned long order)
 {
+	/*
+	 * 试图从zone管理区分配连续的内存页面。
+	 * @zone: 指向管理区的指针。
+	 * @order: 欲分配的页面大小。
+	 */
 	free_area_t * area = zone->free_area + order;
 	unsigned long curr_order = order;
 	struct list_head *head, *curr;
@@ -185,15 +199,21 @@ static struct page * rmqueue(zone_t *zone, unsigned long order)
 		if (curr != head) {
 			unsigned int index;
 
+			//注意，head指针指向free_list，但free_list并不是page结构类型，第一个
+			//page结构的数据实际上是free_list指向的下一个元素。
 			page = memlist_entry(curr, struct page, list);
 			if (BAD_RANGE(zone,page))
 				BUG();
+			//此步骤仅拆除curr与前后元素的关系，实际内容并未删除。
 			memlist_del(curr);
+			//index是指在当前区域下的索引。
 			index = (page - mem_map) - zone->offset;
 			MARK_USED(index, curr_order, area);
+			//free_pages记录的是当前区域中，空闲页的数量，单位是页。
 			zone->free_pages -= 1 << order;
 
 			//将分配到的大块中剩余部分分解为小块链入相应的队列。
+			//函数返回值page，指向最终分配的页面。
 			page = expand(zone, page, index, order, curr_order, area);
 			spin_unlock_irqrestore(&zone->lock, flags);
 
@@ -203,6 +223,8 @@ static struct page * rmqueue(zone_t *zone, unsigned long order)
 			DEBUG_ADD_PAGE
 			return page;	
 		}
+		//执行到此处，说明未找到需要大小的内存页，所以继续扩大搜索范围，到更高
+		//容量的队列中继续搜索，但同时不能超过所允许分配的最大内存页,即MAX_ORDER。
 		curr_order++;
 		area++;
 	} while (curr_order < MAX_ORDER);
@@ -253,6 +275,7 @@ static struct page * __alloc_pages_limit(zonelist_t *zonelist,
 		if (z->free_pages + z->inactive_clean_pages > water_mark) {
 			struct page *page = NULL;
 			/* If possible, reclaim a page directly. */
+			//满足direct_reclaim非零的条件，需要分配的一定是一个单页。
 			if (direct_reclaim && z->free_pages < z->pages_min + 8)
 				page = reclaim_page(z);
 			/* If that fails, fall back to rmqueue. */
@@ -389,6 +412,7 @@ try_again:
 	 * - if we don't have __GFP_IO set, kswapd may be
 	 *   able to free some memory we can't free ourselves
 	 */
+	//至此，管理区中的空闲页面已经严重短缺，接下来唤醒内核kswapd线程。
 	wakeup_kswapd(0);
 	if (gfp_mask & __GFP_WAIT) {
 		__set_current_state(TASK_RUNNING);
@@ -419,8 +443,7 @@ try_again:
 	if (!(current->flags & PF_MEMALLOC)) {
 		/*
 		 * Are we dealing with a higher order allocation?
-		 *
-		 * Move pages from the inactive_clean to the free list
+
 		 * in the hope of creating a large, physically contiguous
 		 * piece of free memory.
 		 */
@@ -428,6 +451,7 @@ try_again:
 			zone = zonelist->zones;
 			/* First, clean some dirty pages. */
 			current->flags |= PF_MEMALLOC;
+			//把藏页面的内容写出到文件或交换设备中。使藏页面变干净。
 			page_launder(gfp_mask, 1);
 			current->flags &= ~PF_MEMALLOC;
 			for (;;) {
@@ -463,6 +487,7 @@ try_again:
 		 * simply cannot free a large enough contiguous area
 		 * of memory *ever*.
 		 */
+		//至此可知，分配页面的总量不够，唤醒kswapd内核线程。
 		if ((gfp_mask & (__GFP_WAIT|__GFP_IO)) == (__GFP_WAIT|__GFP_IO)) {
 			wakeup_kswapd(1);
 			memory_pressure++;

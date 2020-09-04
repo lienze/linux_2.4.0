@@ -16,7 +16,7 @@
 
 typedef struct free_area_struct {
 	struct list_head	free_list;
-	unsigned int		*map;
+	unsigned int		*map;	//指向一个页，存储位图。
 } free_area_t;
 
 struct pglist_data;
@@ -26,7 +26,7 @@ typedef struct zone_struct {
 	 * Commonly accessed fields:
 	 */
 	spinlock_t		lock;
-	unsigned long		offset;
+	unsigned long		offset;	//该分区在mem_map中的起始页面号。
 	unsigned long		free_pages;
 	unsigned long		inactive_clean_pages;
 	unsigned long		inactive_dirty_pages;
