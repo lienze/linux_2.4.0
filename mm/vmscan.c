@@ -484,6 +484,9 @@ out:
 #define MAX_LAUNDER 		(4 * (1 << page_cluster))
 int page_launder(int gfp_mask, int sync)
 {
+	/*
+	 * 尝试将不活跃状态的“脏”页面“洗净”。
+	 */
 	int launder_loop, maxscan, cleaned_pages, maxlaunder;
 	int can_get_io_locks;
 	struct list_head * page_lru;
@@ -495,13 +498,14 @@ int page_launder(int gfp_mask, int sync)
 	 */
 	can_get_io_locks = gfp_mask & __GFP_IO;
 
-	launder_loop = 0;
+	launder_loop = 0;	//控制扫描不活跃“脏”页面队列得次数。
 	maxlaunder = 0;
-	cleaned_pages = 0;
+	cleaned_pages = 0;	//累计被“清洗”的页面数量。
 
 dirty_page_rescan:
 	spin_lock(&pagemap_lru_lock);
 	maxscan = nr_inactive_dirty_pages;
+	//开始扫描非活跃脏页面队列。
 	while ((page_lru = inactive_dirty_list.prev) != &inactive_dirty_list &&
 				maxscan-- > 0) {
 		page = list_entry(page_lru, struct page, lru);
@@ -519,6 +523,7 @@ dirty_page_rescan:
 		if (PageTestandClearReferenced(page) || page->age > 0 ||
 				(!page->buffers && page_count(page) > 1) ||
 				page_ramdisk(page)) {
+			//以上四种情况，将页面从非活跃脏队列换出到活跃队列。
 			del_page_from_inactive_dirty_list(page);
 			add_page_to_active_list(page);
 			continue;
@@ -528,6 +533,7 @@ dirty_page_rescan:
 		 * The page is locked. IO in progress?
 		 * Move it to the back of the list.
 		 */
+		//检测页面是否被锁定。锁定返回1.
 		if (TryLockPage(page)) {
 			list_del(page_lru);
 			list_add(page_lru, &inactive_dirty_list);
@@ -539,6 +545,7 @@ dirty_page_rescan:
 		 * last copy..
 		 */
 		if (PageDirty(page)) {
+			//将脏页面内容，写出到交换设备上。
 			int (*writepage)(struct page *) = page->mapping->a_ops->writepage;
 			int result;
 
@@ -774,6 +781,9 @@ int refill_inactive_scan(unsigned int priority, int oneshot)
  */
 int free_shortage(void)
 {
+	/*
+	 * 检查是否有某个具体管理区中存在严重的短缺。
+	 */
 	pg_data_t *pgdat = pgdat_list;
 	int sum = 0;
 	int freeable = nr_free_pages() + nr_inactive_clean_pages();
@@ -807,13 +817,16 @@ int free_shortage(void)
  */
 int inactive_shortage(void)
 {
+	/*
+	 * 检查内存中可供分配或周转的物理页面是否短缺。
+	 */
 	int shortage = 0;
 
-	shortage += freepages.high;
-	shortage += inactive_target;
-	shortage -= nr_free_pages();
-	shortage -= nr_inactive_clean_pages();
-	shortage -= nr_inactive_dirty_pages;
+	shortage += freepages.high;		//空闲页面数量。
+	shortage += inactive_target;	//不活跃页面的数量。
+	shortage -= nr_free_pages();	//当前尚存的空闲页面。
+	shortage -= nr_inactive_clean_pages();	//现有不活跃“干净”页面。
+	shortage -= nr_inactive_dirty_pages;	//现有不活跃“脏”页面。
 
 	if (shortage > 0)
 		return shortage;
@@ -993,6 +1006,7 @@ int kswapd(void *unused)
 			/* Do we need to do some synchronous flushing? */
 			if (waitqueue_active(&kswapd_done))
 				wait = 1;
+			//尝试释放和换出若干页面。
 			do_try_to_free_pages(GFP_KSWAPD, wait);
 		}
 
@@ -1147,6 +1161,7 @@ static int __init kswapd_init(void)
 {
 	printk("Starting kswapd v1.8\n");
 	swap_setup();
+	//创建kswapd和kreclaimd内核线程。
 	kernel_thread(kswapd, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGNAL);
 	kernel_thread(kreclaimd, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGNAL);
 	return 0;

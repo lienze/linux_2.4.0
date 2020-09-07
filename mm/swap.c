@@ -295,6 +295,9 @@ void recalculate_vm_stats(void)
  */
 void __init swap_setup(void)
 {
+	/*
+	 * 根据物理内存，设定全局量page_cluster。
+	 */
 	/* Use a smaller cluster for memory <16MB or <32MB */
 	if (num_physpages < ((16 * 1024 * 1024) >> PAGE_SHIFT))
 		page_cluster = 2;
