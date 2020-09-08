@@ -37,6 +37,9 @@
  */
 static int try_to_swap_out(struct mm_struct * mm, struct vm_area_struct* vma, unsigned long address, pte_t * page_table, int gfp_mask)
 {
+	/*
+	 * 关键函数，尝试换出一个页面。
+	 */
 	pte_t pte;
 	swp_entry_t entry;
 	struct page * page;
@@ -232,6 +235,9 @@ static inline int swap_out_pgd(struct mm_struct * mm, struct vm_area_struct * vm
 
 static int swap_out_vma(struct mm_struct * mm, struct vm_area_struct * vma, unsigned long address, int gfp_mask)
 {
+	/*
+	 * 根据虚存区域，试图换出一个页面。
+	 */
 	pgd_t *pgdir;
 	unsigned long end;
 
@@ -256,6 +262,9 @@ static int swap_out_vma(struct mm_struct * mm, struct vm_area_struct * vma, unsi
 
 static int swap_out_mm(struct mm_struct * mm, int gfp_mask)
 {
+	/*
+	 * 页面的具体换出函数。
+	 */
 	int result = 0;
 	unsigned long address;
 	struct vm_area_struct* vma;
@@ -304,6 +313,9 @@ out_unlock:
 
 static int swap_out(unsigned int priority, int gfp_mask)
 {
+	/*
+	 * 扫描进程的映射表，将活跃状态页面转入不活跃状态。
+	 */
 	int counter;
 	int __ret = 0;
 
@@ -321,6 +333,8 @@ static int swap_out(unsigned int priority, int gfp_mask)
 	 * Think of swap_cnt as a "shadow rss" - it tells us which process
 	 * we want to page out (always try largest first).
 	 */
+	//nr_threads指当前系统中进程的数量。
+	//counter循环次数。
 	counter = (nr_threads << SWAP_SHIFT) >> priority;
 	if (counter < 1)
 		counter = 1;
@@ -333,8 +347,10 @@ static int swap_out(unsigned int priority, int gfp_mask)
 		int found_task = 0;
 	select:
 		spin_lock(&mmlist_lock);
+		//从第二个进程开始扫描。因为第一个进程是init_task。
 		p = init_mm.mmlist.next;
 		for (; p != &init_mm.mmlist; p = p->next) {
+			//循环扫描的目的是找出mm->swap_cnt的值最大的进程。
 			struct mm_struct *mm = list_entry(p, struct mm_struct, mmlist);
 	 		if (mm->rss <= 0)
 				continue;
@@ -369,6 +385,7 @@ static int swap_out(unsigned int priority, int gfp_mask)
 			}
 			break;
 		} else {
+			//负责页面的具体换出。
 			__ret = swap_out_mm(best, gfp_mask);
 			mmput(best);
 			break;
@@ -549,6 +566,7 @@ dirty_page_rescan:
 			int (*writepage)(struct page *) = page->mapping->a_ops->writepage;
 			int result;
 
+			//如果页面没有提供写出函数，则将页面送回活跃页面队列中。
 			if (!writepage)
 				goto page_active;
 
@@ -561,10 +579,12 @@ dirty_page_rescan:
 			}
 
 			/* OK, do a physical asynchronous write to swap.  */
+			//此时，开始将脏页面写入到交换设备上。
 			ClearPageDirty(page);
 			page_cache_get(page);
 			spin_unlock(&pagemap_lru_lock);
 
+			//此处使用页面提供的写入交换设备函数。
 			result = writepage(page);
 			page_cache_release(page);
 
@@ -573,6 +593,7 @@ dirty_page_rescan:
 			if (result != 1)
 				continue;
 			/* writepage refused to do anything */
+			//如果发现页面写入失败，需要将页面恢复为原来的状态。
 			set_page_dirty(page);
 			goto page_active;
 		}
@@ -586,6 +607,7 @@ dirty_page_rescan:
 		 * On the first round, we should free all previously cleaned
 		 * buffer pages
 		 */
+		//如果页面用于读写缓冲的页面。
 		if (page->buffers) {
 			int wait, clearedbuf;
 			int freed_page = 0;
@@ -594,6 +616,7 @@ dirty_page_rescan:
 			 * drop the spinlock and take an extra reference
 			 * on the page so it doesn't go away from under us.
 			 */
+			//先脱离不活跃“脏”页面队列。
 			del_page_from_inactive_dirty_list(page);
 			page_cache_get(page);
 			spin_unlock(&pagemap_lru_lock);
@@ -607,6 +630,7 @@ dirty_page_rescan:
 				wait = 0;	/* No IO */
 
 			/* Try to free the page buffers. */
+			//尝试将页面释放。
 			clearedbuf = try_to_free_buffers(page, wait);
 
 			/*
@@ -632,6 +656,7 @@ dirty_page_rescan:
 
 			/* OK, we "created" a freeable page. */
 			} else /* page->mapping && page_count(page) == 2 */ {
+				//页面释放成功，将页面挂入空闲页面队列。
 				add_page_to_inactive_clean_list(page);
 				cleaned_pages++;
 			}
@@ -715,11 +740,13 @@ int refill_inactive_scan(unsigned int priority, int oneshot)
 {
 	struct list_head * page_lru;
 	struct page * page;
+	//maxscan控制扫描的页面数量。
 	int maxscan, page_active = 0;
 	int ret = 0;
 
 	/* Take the lock while messing with the list... */
 	spin_lock(&pagemap_lru_lock);
+	//根据priority级，确定扫描数量maxscan。
 	maxscan = nr_active_pages >> priority;
 	while (maxscan-- > 0 && (page_lru = active_list.prev) != &active_list) {
 		page = list_entry(page_lru, struct page, lru);
@@ -748,6 +775,7 @@ int refill_inactive_scan(unsigned int priority, int oneshot)
 			 *
 			 * SUBTLE: we can have buffer pages with count 1.
 			 */
+			//减少页面寿命以后，如果达到0，转入不活跃状态。
 			if (page->age == 0 && page_count(page) <=
 						(page->buffers ? 2 : 1)) {
 				deactivate_page_nolock(page);
@@ -856,17 +884,22 @@ static int refill_inactive(unsigned int gfp_mask, int user)
 	start_count = count;
 
 	/* Always trim SLAB caches when memory gets low. */
+	//收割由slab机制管理的空闲物理页面。
 	kmem_cache_reap(gfp_mask);
 
-	priority = 6;
+	priority = 6;//优先级，初始为最低的6级，最大为0级。
 	do {
 		made_progress = 0;
 
+		//检查当前进程的need_resched变量。
 		if (current->need_resched) {
+			//重新调度之前，设置状态为TASK_RUNNING，表示要继续执行的意愿。
 			__set_current_state(TASK_RUNNING);
+			//让内核进行一次调度。
 			schedule();
 		}
 
+		//扫描活跃页面队列，尝试从中找到可以转入不活跃状态的页面。
 		while (refill_inactive_scan(priority, 1)) {
 			made_progress = 1;
 			if (--count <= 0)
@@ -884,6 +917,7 @@ static int refill_inactive(unsigned int gfp_mask, int user)
 		/*
 		 * Then, try to page stuff out..
 		 */
+		//尝试找出一个进程，扫描其映射表，从中找出可以转入不活跃状态的页面。
 		while (swap_out(priority, gfp_mask)) {
 			made_progress = 1;
 			if (--count <= 0)
@@ -939,8 +973,9 @@ static int do_try_to_free_pages(unsigned int gfp_mask, int user)
 	 * the inode and dentry cache whenever we do this.
 	 */
 	if (free_shortage() || inactive_shortage()) {
-		shrink_dcache_memory(6, gfp_mask);
-		shrink_icache_memory(6, gfp_mask);
+		//如果可分配的物理页面数量仍然不足，需要进一步设法回收页面。
+		shrink_dcache_memory(6, gfp_mask);//回收dentry缓存占用的页面。
+		shrink_icache_memory(6, gfp_mask);//回收inode缓存占用的页面。
 		ret += refill_inactive(gfp_mask, user);
 	} else {
 		/*
