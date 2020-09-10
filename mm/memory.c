@@ -261,6 +261,9 @@ nomem:
  */
 static inline int free_pte(pte_t pte)
 {
+	/*
+	 * 释放pte中存储的地址所指向的页面
+	 */
 	if (pte_present(pte)) {
 		struct page *page = pte_page(pte);
 		if ((!VALID_PAGE(page)) || PageReserved(page))
@@ -350,6 +353,9 @@ static inline int zap_pmd_range(struct mm_struct *mm, pgd_t * dir, unsigned long
  */
 void zap_page_range(struct mm_struct *mm, unsigned long address, unsigned long size)
 {
+	/*
+	 * 解除若干连续页面的映射，并释放所映射的内存页面。
+	 */
 	pgd_t * dir;
 	unsigned long end = address + size;
 	int freed = 0;

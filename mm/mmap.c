@@ -119,14 +119,22 @@ void unlock_vma_mappings(struct vm_area_struct *vma)
  */
 asmlinkage unsigned long sys_brk(unsigned long brk)
 {
+	/*
+	 * brk系统调用，“批发”内存。
+	 * 既可以分配空间，也可以释放空间。
+	 * @brk: 所要求的新边界。
+	 */
 	unsigned long rlim, retval;
 	unsigned long newbrk, oldbrk;
 	struct mm_struct *mm = current->mm;
 
 	down(&mm->mmap_sem);
 
+	//所要求的新边界brk不能低于代码段的终点。
 	if (brk < mm->end_code)
 		goto out;
+
+	//新旧边界需要页面大小对齐。
 	newbrk = PAGE_ALIGN(brk);
 	oldbrk = PAGE_ALIGN(mm->brk);
 	if (oldbrk == newbrk)
@@ -134,6 +142,7 @@ asmlinkage unsigned long sys_brk(unsigned long brk)
 
 	/* Always allow shrinking brk. */
 	if (brk <= mm->brk) {
+		//新边界如果低于老边界，就是释放空间。
 		if (!do_munmap(mm, newbrk, oldbrk-newbrk))
 			goto set_brk;
 		goto out;
@@ -668,6 +677,11 @@ no_mmaps:
  */
 int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
 {
+	/*
+	 * 释放被分配的空间。
+	 * @addr: 释放空间的起始地址。
+	 * @len: 释放空间的长度。
+	 */
 	struct vm_area_struct *mpnt, *prev, **npp, *free, *extra;
 
 	if ((addr & ~PAGE_MASK) || addr > TASK_SIZE || len > TASK_SIZE-addr)
@@ -686,9 +700,12 @@ int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
 		return 0;
 	/* we have  addr < mpnt->vm_end  */
 
+	//说明要取消映射的空间原本就没有映射。
 	if (mpnt->vm_start >= addr+len)
 		return 0;
 
+	//要取消分配的空间，在一个区域的中间，则回形成空洞，在此必须检测
+	//形成空洞以后，区间数量是否到达最大值。
 	/* If we'll make "hole", check the vm areas limit */
 	if ((mpnt->vm_start < addr && mpnt->vm_end > addr+len)
 	    && mm->map_count >= MAX_MAP_COUNT)
@@ -721,6 +738,7 @@ int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
 	 * it will put new vm_area_struct(s) into the address space.
 	 * In that case we have to be careful with VM_DENYWRITE.
 	 */
+	//循环中逐个解除映射。
 	while ((mpnt = free) != NULL) {
 		unsigned long st, end, size;
 		struct file *file = NULL;

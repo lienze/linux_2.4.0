@@ -45,10 +45,10 @@ static int try_to_swap_out(struct mm_struct * mm, struct vm_area_struct* vma, un
 	struct page * page;
 	int onlist;
 
-	pte = *page_table;
+	pte = *page_table;//page_table指向一个页面表项。
 	if (!pte_present(pte))
 		goto out_failed;
-	page = pte_page(pte);
+	page = pte_page(pte);//至此，pte指向的物理页面在内存中，转换成指向page结构的指针。
 	if ((!VALID_PAGE(page)) || PageReserved(page))
 		goto out_failed;
 
@@ -59,10 +59,12 @@ static int try_to_swap_out(struct mm_struct * mm, struct vm_area_struct* vma, un
 
 	onlist = PageActive(page);
 	/* Don't look at this pte if it's been accessed recently. */
+	//检测当前物理页面是否是最近受到了访问。
 	if (ptep_test_and_clear_young(page_table)) {
 		age_page_up(page);
 		goto out_failed;
 	}
+	//非活跃的页面，即不在活跃队列中。
 	if (!onlist)
 		/* The page is still mapped, so it can't be freeable... */
 		age_page_down_ageonly(page);
@@ -72,9 +74,11 @@ static int try_to_swap_out(struct mm_struct * mm, struct vm_area_struct* vma, un
 	 * is in active use by others, don't unmap it or
 	 * (worse) start unneeded IO.
 	 */
+	//page->age未到达0，不能将其换出。
 	if (page->age > 0)
 		goto out_failed;
 
+	//返回1，说明已经被别的进程先锁住了，此时不能继续处理。
 	if (TryLockPage(page))
 		goto out_failed;
 
@@ -94,10 +98,11 @@ static int try_to_swap_out(struct mm_struct * mm, struct vm_area_struct* vma, un
 	 * Return 0, as we didn't actually free any real
 	 * memory, and we should just continue our scan.
 	 */
+	//检查页面是否在swapper_sapce队列中。
 	if (PageSwapCache(page)) {
 		entry.val = page->index;
 		if (pte_dirty(pte))
-			set_page_dirty(page);
+			set_page_dirty(page);//将页面转入脏队列。
 set_swap_pte:
 		swap_duplicate(entry);
 		set_pte(page_table, swp_entry_to_pte(entry));
@@ -278,7 +283,7 @@ static int swap_out_mm(struct mm_struct * mm, int gfp_mask)
 	 * and ptes.
 	 */
 	spin_lock(&mm->page_table_lock);
-	address = mm->swap_address;
+	address = mm->swap_address;//mm->swap_address表示在执行过程中要考察的页面地址。
 	vma = find_vma(mm, address);
 	if (vma) {
 		if (address < vma->vm_start)

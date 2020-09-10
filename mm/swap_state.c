@@ -113,6 +113,7 @@ void delete_from_swap_cache_nolock(struct page *page)
 	if (!PageLocked(page))
 		BUG();
 
+	//将页面的内容写入到块设备上。仅对映射到用户空间的文件才使用。
 	if (block_flushpage(page, 0))
 		lru_cache_del(page);
 
@@ -146,6 +147,7 @@ void free_page_and_swap_cache(struct page *page)
 	 */
 	if (PageSwapCache(page) && !TryLockPage(page)) {
 		if (!is_page_shared(page)) {
+			//将页面从链入的队列中脱离出来。
 			delete_from_swap_cache_nolock(page);
 		}
 		UnlockPage(page);

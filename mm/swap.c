@@ -165,6 +165,10 @@ void age_page_down(struct page * page)
 void deactivate_page_nolock(struct page * page)
 {
 	/*
+	 * 将页面的page结构从活跃页面队列转移到某个不活跃页面队列。
+	 */
+
+	/*
 	 * One for the cache, one for the extra reference the
 	 * caller has and (maybe) one for the buffers.
 	 *
@@ -249,6 +253,9 @@ void lru_cache_add(struct page * page)
  */
 void __lru_cache_del(struct page * page)
 {
+	/*
+	 * 将页面从lru队列中脱离出来。
+	 */
 	if (PageActive(page)) {
 		del_page_from_active_list(page);
 	} else if (PageInactiveDirty(page)) {
