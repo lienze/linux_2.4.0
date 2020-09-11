@@ -45,6 +45,9 @@ static inline long do_mmap2(
 	unsigned long prot, unsigned long flags,
 	unsigned long fd, unsigned long pgoff)
 {
+	/*
+	 * mmap系统调用，将已打开文件映射到用户空间。
+	 */
 	int error = -EBADF;
 	struct file * file = NULL;
 

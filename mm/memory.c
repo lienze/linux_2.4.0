@@ -1226,6 +1226,9 @@ int handle_mm_fault(struct mm_struct *mm, struct vm_area_struct * vma,
  */
 int make_pages_present(unsigned long addr, unsigned long end)
 {
+	/*
+	 * 新增的区间建立对内存页面的映射。
+	 */
 	int write;
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct * vma;
@@ -1235,6 +1238,7 @@ int make_pages_present(unsigned long addr, unsigned long end)
 	if (addr >= end)
 		BUG();
 	do {
+		//为了新增页面映射，模拟缺页异常。
 		if (handle_mm_fault(mm, vma, addr, write) < 0)
 			return -1;
 		addr += PAGE_SIZE;

@@ -148,15 +148,20 @@ asmlinkage unsigned long sys_brk(unsigned long brk)
 		goto out;
 	}
 
+	//至此，则新边界高于老边界，即为分配空间。
+	
+	//检查是否超过进程的资源限制。
 	/* Check against rlimit.. */
 	rlim = current->rlim[RLIMIT_DATA].rlim_cur;
 	if (rlim < RLIM_INFINITY && brk - mm->start_data > rlim)
 		goto out;
 
+	//检查是否与当前已经存在的区间冲突。
 	/* Check against existing mmap mappings. */
 	if (find_vma_intersection(mm, oldbrk, newbrk+PAGE_SIZE))
 		goto out;
 
+	//查看系统是否有足够的空闲页面空间。
 	/* Check if we have enough memory.. */
 	if (!vm_enough_memory((newbrk-oldbrk) >> PAGE_SHIFT))
 		goto out;
@@ -263,6 +268,8 @@ unsigned long do_mmap_pgoff(struct file * file, unsigned long addr, unsigned lon
 		if (addr & ~PAGE_MASK)
 			return -EINVAL;
 	} else {
+		//flags中的MAP_FIXED位为0，表示指定的映射地址只是一个参考值，不满足时
+		//可以由内核分配一个。
 		addr = get_unmapped_area(addr, len);
 		if (!addr)
 			return -ENOMEM;
@@ -309,7 +316,7 @@ unsigned long do_mmap_pgoff(struct file * file, unsigned long addr, unsigned lon
 	}
 	vma->vm_page_prot = protection_map[vma->vm_flags & 0x0f];
 	vma->vm_ops = NULL;
-	vma->vm_pgoff = pgoff;
+	vma->vm_pgoff = pgoff;//pgoff表示映射内容在文件中的起点。
 	vma->vm_file = NULL;
 	vma->vm_private_data = NULL;
 
@@ -355,6 +362,7 @@ unsigned long do_mmap_pgoff(struct file * file, unsigned long addr, unsigned lon
 	flags = vma->vm_flags;
 	addr = vma->vm_start;
 
+	//将新建立的vma结构插入到当前进程的mm_struct结构中。
 	insert_vm_struct(mm, vma);
 	if (correct_wcount)
 		atomic_inc(&file->f_dentry->d_inode->i_writecount);
@@ -391,6 +399,8 @@ unsigned long get_unmapped_area(unsigned long addr, unsigned long len)
 
 	if (len > TASK_SIZE)
 		return 0;
+	//当给定的目标地址为0时，内核从1G（TASK_SIZE/3)处开始向上寻找
+	//一块足够容纳给定长度的区间。
 	if (!addr)
 		addr = TASK_UNMAPPED_BASE;
 	addr = PAGE_ALIGN(addr);
@@ -797,6 +807,11 @@ asmlinkage long sys_munmap(unsigned long addr, size_t len)
  */
 unsigned long do_brk(unsigned long addr, unsigned long len)
 {
+	/*
+	 * brk系统调用的主体。
+	 * @addr: 需要建立新区间的起点。
+	 * @len: 需要建立新区间的长度。
+	 */
 	struct mm_struct * mm = current->mm;
 	struct vm_area_struct * vma;
 	unsigned long flags, retval;
@@ -840,6 +855,7 @@ unsigned long do_brk(unsigned long addr, unsigned long len)
 	
 
 	/* Can we just expand an old anonymous mapping? */
+	//检查是否可以和原有区间合并。
 	if (addr) {
 		struct vm_area_struct * vma = find_vma(mm, addr-1);
 		if (vma && vma->vm_end == addr && !vma->vm_file && 
@@ -853,6 +869,7 @@ unsigned long do_brk(unsigned long addr, unsigned long len)
 	/*
 	 * create a vma struct for an anonymous mapping
 	 */
+	//无法和原有区间合并时，创建新的区间。
 	vma = kmem_cache_alloc(vm_area_cachep, SLAB_KERNEL);
 	if (!vma)
 		return -ENOMEM;
@@ -873,6 +890,7 @@ out:
 	mm->total_vm += len >> PAGE_SHIFT;
 	if (flags & VM_LOCKED) {
 		mm->locked_vm += len >> PAGE_SHIFT;
+		//为新增的区间建立起对内存页面的映射。
 		make_pages_present(addr, addr + len);
 	}
 	return addr;
