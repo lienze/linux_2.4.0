@@ -565,6 +565,7 @@ void __init mem_init(void)
 #else
 	max_mapnr = num_physpages = max_low_pfn;
 #endif
+	//设置检测到的物理内存地址的上限所对应的虚拟地址。
 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
 
 	/* clear the zero-page */

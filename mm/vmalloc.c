@@ -176,6 +176,7 @@ struct vm_struct * get_vm_area(unsigned long size, unsigned long flags)
 	size += PAGE_SIZE;
 	addr = VMALLOC_START;
 	write_lock(&vmlist_lock);
+	//vmlist是内核专用的虚存区间队列。
 	for (p = &vmlist; (tmp = *p) ; p = &tmp->next) {
 		if ((size + addr) < addr) {
 			write_unlock(&vmlist_lock);

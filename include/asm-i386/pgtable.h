@@ -138,6 +138,9 @@ extern unsigned long empty_zero_page[1024];
  * area for the same reason. ;)
  */
 #define VMALLOC_OFFSET	(8*1024*1024)
+//这个VMALLOC_START宏定义的目的有两层，一是要空出8MB的空洞，二是要对齐，就是说
+//即使high_memory没有对齐，也要空出没有对齐的部分，从紧挨着的VMALLOC_OFFSET边界
+//开始计算，最终空出一个8MB空间。
 #define VMALLOC_START	(((unsigned long) high_memory + 2*VMALLOC_OFFSET-1) & \
 						~(VMALLOC_OFFSET-1))
 #define VMALLOC_VMADDR(x) ((unsigned long)(x))

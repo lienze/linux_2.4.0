@@ -139,6 +139,11 @@ extern void * __ioremap(unsigned long offset, unsigned long size, unsigned long 
 
 extern inline void * ioremap (unsigned long offset, unsigned long size)
 {
+	/*
+	 * 反向从物理地址出发，找到一篇虚存空间并建立映射。
+	 * offset: 物理地址的起始地址。
+	 * size: 从offset开始的物理地址的长度。
+	 */
 	return __ioremap(offset, size, 0);
 }
 

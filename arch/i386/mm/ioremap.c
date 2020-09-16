@@ -62,10 +62,17 @@ static inline int remap_area_pmd(pmd_t * pmd, unsigned long address, unsigned lo
 static int remap_area_pages(unsigned long address, unsigned long phys_addr,
 				 unsigned long size, unsigned long flags)
 {
+	/*
+	 * 将一段物理内存与虚拟区间进行映射。
+	 * @address: 虚拟区间的起始地址。
+	 * @phys_addr: 物理内存的起始地址。
+	 * @size: 映射的长度。
+	 */
 	pgd_t * dir;
 	unsigned long end = address + size;
 
 	phys_addr -= address;
+	//init_mm内核专用的mm_struct结构对象。
 	dir = pgd_offset(&init_mm, address);
 	flush_cache_all();
 	if (address >= end)
@@ -112,6 +119,7 @@ void * __ioremap(unsigned long phys_addr, unsigned long size, unsigned long flag
 	/*
 	 * Don't remap the low PCI/ISA area, it's always mapped..
 	 */
+	//0xA0000~0x100000用于VGA和BIOS。
 	if (phys_addr >= 0xA0000 && last_addr < 0x100000)
 		return phys_to_virt(phys_addr);
 
@@ -124,7 +132,7 @@ void * __ioremap(unsigned long phys_addr, unsigned long size, unsigned long flag
 
 		t_addr = __va(phys_addr);
 		t_end = t_addr + (size - 1);
-	   
+		//除非物理页面原来就是保留着的空洞，否则与系统的物理内存冲突。
 		for(page = virt_to_page(t_addr); page <= virt_to_page(t_end); page++)
 			if(!PageReserved(page))
 				return NULL;
@@ -133,17 +141,21 @@ void * __ioremap(unsigned long phys_addr, unsigned long size, unsigned long flag
 	/*
 	 * Mappings have to be page-aligned
 	 */
+	//offset是页内偏移，在这里取出，以备后用。
 	offset = phys_addr & ~PAGE_MASK;
+	//phys_addr为对其之后的地址。
 	phys_addr &= PAGE_MASK;
 	size = PAGE_ALIGN(last_addr) - phys_addr;
 
 	/*
 	 * Ok, go for it..
 	 */
+	//在内核的虚存空间中搜索。
 	area = get_vm_area(size, VM_IOREMAP);
 	if (!area)
 		return NULL;
 	addr = area->addr;
+	//接下来进入建立映射的实质性阶段。
 	if (remap_area_pages(VMALLOC_VMADDR(addr), phys_addr, size, flags)) {
 		vfree(addr);
 		return NULL;
