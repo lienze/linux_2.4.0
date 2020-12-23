@@ -665,6 +665,10 @@ int request_irq(unsigned int irq,
 		const char * devname,
 		void *dev_id)
 {
+	/*
+	 * 具体设备在初始化过程中，通过此函数向系统注册，并挂入某个请求队列。
+	 */
+
 	int retval;
 	struct irqaction * action;
 
@@ -958,6 +962,10 @@ int probe_irq_off(unsigned long val)
 /* this was setup_x86_irq but it seems pretty generic */
 int setup_irq(unsigned int irq, struct irqaction * new)
 {
+	/*
+	 * 将具体的中断请求注册到请求队列。
+	 */
+
 	int shared = 0;
 	unsigned long flags;
 	struct irqaction *old, **p;

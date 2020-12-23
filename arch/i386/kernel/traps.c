@@ -948,6 +948,9 @@ cobalt_init(void)
 #endif
 void __init trap_init(void)
 {
+	/*
+	 * 设置为CPU保留专用得IDT表项以及系统调用所需要的陷阱门。
+	 */
 #ifdef CONFIG_EISA
 	if (isa_readl(0x0FFFD9) == 'E'+('I'<<8)+('S'<<16)+('A'<<24))
 		EISA_bus = 1;

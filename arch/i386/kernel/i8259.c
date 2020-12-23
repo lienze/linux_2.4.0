@@ -412,6 +412,10 @@ static struct irqaction irq2 = { no_action, 0, 0, "cascade", NULL, NULL};
 
 void __init init_ISA_irqs (void)
 {
+	/*
+	 * 初始化ISA总线。
+	 */
+
 	int i;
 
 	init_8259A(0);
@@ -437,6 +441,10 @@ void __init init_ISA_irqs (void)
 
 void __init init_IRQ(void)
 {
+	/*
+	 * 设置大量用于外设的通用中断门。
+	 */
+
 	int i;
 
 #ifndef CONFIG_X86_VISWS_APIC
