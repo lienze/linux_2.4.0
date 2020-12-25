@@ -128,6 +128,7 @@ extern inline pte_t * pte_alloc(pmd_t * pmd, unsigned long address)
 	return (pte_t *)pmd_page(*pmd) + address;
 getnew:
 {
+	//get_pet_fast()函数首先在缓冲池中寻找页面。
 	unsigned long page = (unsigned long) get_pte_fast();
 	
 	if (!page)

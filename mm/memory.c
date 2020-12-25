@@ -1164,6 +1164,10 @@ static inline int handle_pte_fault(struct mm_struct *mm,
 	struct vm_area_struct * vma, unsigned long address,
 	int write_access, pte_t * pte)
 {
+	/*
+	 * 此处开始进行pte表的处理。
+	 */
+
 	pte_t entry;
 
 	/*
