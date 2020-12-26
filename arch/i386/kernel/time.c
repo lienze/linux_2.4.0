@@ -627,7 +627,7 @@ void __init time_init(void)
 {
 	extern int x86_udelay_tsc;
 	
-	xtime.tv_sec = get_cmos_time();
+	xtime.tv_sec = get_cmos_time();//从CMOS芯片中将时间读入到xtime中。
 	xtime.tv_usec = 0;
 
 /*

@@ -673,6 +673,7 @@ void timer_bh(void)
 
 void do_timer(struct pt_regs *regs)
 {
+	// 保证gcc编译后，对内存单元进行INC操作，保持原子性。
 	(*(unsigned long *)&jiffies)++;
 #ifndef CONFIG_SMP
 	/* SMP process accounting uses the local APIC timer */

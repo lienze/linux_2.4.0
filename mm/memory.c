@@ -1071,6 +1071,7 @@ static int do_anonymous_page(struct mm_struct * mm, struct vm_area_struct * vma,
 	 * @write_access: 0只读，非0写。
 	 */
 	struct page *page = NULL;
+	//mk_pte函数的第二个参数，表示了页的属性将同当前操作的VMA区域的属性一致。
 	pte_t entry = pte_wrprotect(mk_pte(ZERO_PAGE(addr), vma->vm_page_prot));
 	if (write_access) {
 		page = alloc_page(GFP_HIGHUSER);
