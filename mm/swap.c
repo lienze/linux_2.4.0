@@ -125,6 +125,10 @@ void age_page_down_nolock(struct page * page)
 void age_page_up(struct page * page)
 {
 	/*
+	 * 增加页面观察的时间。
+	 */
+
+	/*
 	 * We're dealing with an inactive page, move the page
 	 * to the active list.
 	 */

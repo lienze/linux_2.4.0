@@ -838,6 +838,10 @@ void si_swapinfo(struct sysinfo *val)
  */
 int swap_duplicate(swp_entry_t entry)
 {
+	/*
+	 * 1.对索引项的内容做一些检验。
+	 * 2.递增相应盘上页面的共享计数。
+	 */
 	struct swap_info_struct * p;
 	unsigned long offset, type;
 	int result = 0;

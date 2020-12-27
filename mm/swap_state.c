@@ -218,12 +218,17 @@ out_bad:
 
 struct page * read_swap_cache_async(swp_entry_t entry, int wait)
 {
+	/*
+	 * 分配一个内存页面，从盘上将其内容读进来。
+	 */
+
 	struct page *found_page = 0, *new_page;
 	unsigned long new_page_addr;
 	
 	/*
 	 * Make sure the swap entry is still in use.
 	 */
+	//递增盘上页面的共享计数。
 	if (!swap_duplicate(entry))	/* Account for the swap cache */
 		goto out;
 	/*

@@ -87,6 +87,7 @@ static int try_to_swap_out(struct mm_struct * mm, struct vm_area_struct* vma, un
 	 * is needed on CPUs which update the accessed and dirty
 	 * bits in hardware.
 	 */
+	//读取页面表项的内容到pte变量中。
 	pte = ptep_get_and_clear(page_table);
 	flush_tlb_page(vma, address);
 
@@ -149,11 +150,13 @@ out_failed:
 	 * we have the swap cache set up to associate the
 	 * page with that swap entry.
 	 */
+	//分配一个盘上页面。
 	entry = get_swap_page();
 	if (!entry.val)
 		goto out_unlock_restore; /* No swap space left */
 
 	/* Add it to the swap cache and mark it dirty */
+	//将页面链入swapper_space队列中，及活跃页面队列中。
 	add_to_swap_cache(page, entry);
 	set_page_dirty(page);
 	goto set_swap_pte;
@@ -284,12 +287,13 @@ static int swap_out_mm(struct mm_struct * mm, int gfp_mask)
 	 */
 	spin_lock(&mm->page_table_lock);
 	address = mm->swap_address;//mm->swap_address表示在执行过程中要考察的页面地址。
-	vma = find_vma(mm, address);
+	vma = find_vma(mm, address);//找到address虚拟地址所在的vma虚存区域。
 	if (vma) {
 		if (address < vma->vm_start)
 			address = vma->vm_start;
 
 		for (;;) {
+			//尝试换出一个页面。
 			result = swap_out_vma(mm, vma, address, gfp_mask);
 			if (result)
 				goto out_unlock;
@@ -368,6 +372,7 @@ static int swap_out(unsigned int priority, int gfp_mask)
 			}
 			if (mm->swap_cnt > max_cnt) {
 				max_cnt = mm->swap_cnt;
+				//此时找到了最合适的进程。后续会将此进程的页面进行清理。
 				best = mm;
 			}
 		}
@@ -757,6 +762,7 @@ int refill_inactive_scan(unsigned int priority, int oneshot)
 		page = list_entry(page_lru, struct page, lru);
 
 		/* Wrong page on list?! (list corruption, should not happen) */
+		//首先检查此页面是否为活跃页面，如果为非活跃，将其从lru队列删除。
 		if (!PageActive(page)) {
 			printk("VM: refill_inactive, wrong page on list.\n");
 			list_del(page_lru);
@@ -882,6 +888,10 @@ int inactive_shortage(void)
  */
 static int refill_inactive(unsigned int gfp_mask, int user)
 {
+	/*
+	 * @user:表示是否有函数在kswapd_done队列中等待执行。
+	 */
+
 	int priority, count, start_count, made_progress;
 
 	count = inactive_shortage() + free_shortage();

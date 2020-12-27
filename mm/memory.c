@@ -1025,6 +1025,17 @@ static int do_swap_page(struct mm_struct * mm,
 	struct vm_area_struct * vma, unsigned long address,
 	pte_t * page_table, swp_entry_t entry, int write_access)
 {
+	/*
+	 * 从交换设备上读入页面。
+	 * @mm: 指向当前进程的mm_struct指针。
+	 * @vma: 所属虚存区间的vm_area_struct结构的指针。
+	 * @address: 映射失败的地址。
+	 * @page_table: 指向映射失败的页面表项。
+	 * @entry: 为page_table所指表项的内容。
+	 * @write_access: 映射失败时的访问种类，是读/写。
+	 */
+
+	//首先检查内存页面是否还留在swapper_sapce的换入/换出队列。
 	struct page *page = lookup_swap_cache(entry);
 	pte_t pte;
 
@@ -1036,6 +1047,7 @@ static int do_swap_page(struct mm_struct * mm,
 		if (!page)
 			return -1;
 
+		//以下两个函数对于i386处理器而言，均为空操作。
 		flush_page_to_ram(page);
 		flush_icache_page(vma, page);
 	}
