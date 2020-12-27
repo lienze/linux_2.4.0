@@ -157,12 +157,17 @@ void __swap_free(swp_entry_t entry, unsigned short count)
 	if (!entry.val)
 		goto out;
 
+	//type为页面交换设备的编号。
+	//(entry >> 1) && 0x3f --> 0011 1111 即占用32比特的其中6位
+	//这个type编号为swap_info数组的下标。
 	type = SWP_TYPE(entry);
 	if (type >= nr_swapfiles)
 		goto bad_nofile;
 	p = & swap_info[type];
 	if (!(p->flags & SWP_USED))
 		goto bad_device;
+	//offset是swp_entry_t结构的前24位，指页面在磁盘设备或文件中的
+	//逻辑页面号。
 	offset = SWP_OFFSET(entry);
 	if (offset >= p->max)
 		goto bad_offset;

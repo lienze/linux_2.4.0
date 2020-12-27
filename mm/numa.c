@@ -97,7 +97,7 @@ struct page * alloc_pages(int gfp_mask, unsigned long order)
 	/*
 	 * numa版本的分配页面函数。
 	 * @gfp_mask: 表明采用的分配策略。
-	 * @order: 指明分配物理块的大小，1，2，4...
+	 * @order: 指明分配物理块的大小，1，2，4...,2^MAX_ORDER个页面。
 	 */
 	struct page *ret = 0;
 	pg_data_t *start, *temp;
@@ -117,6 +117,7 @@ struct page * alloc_pages(int gfp_mask, unsigned long order)
 	next = next->node_next;
 	spin_unlock_irqrestore(&node_lock, flags);
 #endif
+	//以下为该函数的主要操作。
 	start = temp;
 	while (temp) {
 		if ((ret = alloc_pages_pgdat(temp, gfp_mask, order)))

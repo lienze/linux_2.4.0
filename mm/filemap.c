@@ -71,6 +71,9 @@ static void add_page_to_hash_queue(struct page * page, struct page **p)
 
 static inline void add_page_to_inode_queue(struct address_space *mapping, struct page * page)
 {
+	/*
+	 * 将page链入到clean_pages队列中。
+	 */
 	struct list_head *head = &mapping->clean_pages;
 
 	mapping->nrpages++;
@@ -487,12 +490,13 @@ void add_to_page_cache_locked(struct page * page, struct address_space *mapping,
 	if (!PageLocked(page))
 		BUG();
 
-	page_cache_get(page);
+	page_cache_get(page);//将页面的使用计数+1
 	spin_lock(&pagecache_lock);
 	page->index = index;
-	//加入swapper_sapce中的clean_pages队列。
+	//加入到swapper_space中的clean_pages队列。
 	add_page_to_inode_queue(mapping, page);
 	//将page加入page_hash_table表队列中。
+	//page_hash()计算哈希值。
 	add_page_to_hash_queue(page, page_hash(mapping, index));
 	//加入LRU队列active_list中。
 	lru_cache_add(page);

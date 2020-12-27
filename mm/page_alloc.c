@@ -185,6 +185,8 @@ static struct page * rmqueue(zone_t *zone, unsigned long order)
 	 * @zone: 指向管理区的指针。
 	 * @order: 欲分配的页面大小。
 	 */
+
+	//free_area是一个数组，+order的操作是指向所需大小的物理内存块的队列头。
 	free_area_t * area = zone->free_area + order;
 	unsigned long curr_order = order;
 	struct list_head *head, *curr;
@@ -199,8 +201,9 @@ static struct page * rmqueue(zone_t *zone, unsigned long order)
 		if (curr != head) {
 			unsigned int index;
 
-			//注意，head指针指向free_list，但free_list并不是page结构类型，第一个
-			//page结构的数据实际上是free_list指向的下一个元素。
+			//注意，head指针指向free_list，但free_list并不是page结构
+			//类型，第一个page结构的数据实际上是free_list指向的下一个
+			//元素。
 			page = memlist_entry(curr, struct page, list);
 			if (BAD_RANGE(zone,page))
 				BUG();
@@ -297,7 +300,7 @@ static struct page * __alloc_pages_limit(zonelist_t *zonelist,
 struct page * __alloc_pages(zonelist_t *zonelist, unsigned long order)
 {
 	/*
-	 * UMA结构的页面分配函数。
+	 * 具体的页面分配函数，UMA与NUMA结构均调用此函数。
 	 */
 	zone_t **zone;
 	int direct_reclaim = 0;
@@ -371,6 +374,9 @@ try_again:
 		}
 	}
 
+	//执行到这里，说明还没有找到空闲页，需要继续加大力度，可以试图在
+	//不活跃干净页面中查找。
+
 	/*
 	 * Try to allocate a page from a zone with a HIGH
 	 * amount of free + inactive_clean pages.
@@ -440,6 +446,7 @@ try_again:
 	 * - we're /really/ tight on memory
 	 * 	--> wait on the kswapd waitqueue until memory is freed
 	 */
+	//普通进程在屡次分配不到内存页时，如下处理。
 	if (!(current->flags & PF_MEMALLOC)) {
 		/*
 		 * Are we dealing with a higher order allocation?
@@ -451,7 +458,7 @@ try_again:
 			zone = zonelist->zones;
 			/* First, clean some dirty pages. */
 			current->flags |= PF_MEMALLOC;
-			//把藏页面的内容写出到文件或交换设备中。使藏页面变干净。
+			//把脏页面的内容写出到文件或交换设备中。使脏页面变干净。
 			page_launder(gfp_mask, 1);
 			current->flags &= ~PF_MEMALLOC;
 			for (;;) {
@@ -520,6 +527,8 @@ try_again:
 	 * in the system, otherwise it would be just too easy to
 	 * deadlock the system...
 	 */
+	//如果执行到了这里，说明是kswapd或kreclaimd线程在申请内存页。
+	//也有可能是普通进程经历了以上的分配但是未分配到内存页。
 	zone = zonelist->zones;
 	for (;;) {
 		zone_t *z = *(zone++);

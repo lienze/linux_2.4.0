@@ -520,7 +520,7 @@ int page_launder(int gfp_mask, int sync)
 	 */
 	can_get_io_locks = gfp_mask & __GFP_IO;
 
-	launder_loop = 0;	//控制扫描不活跃“脏”页面队列得次数。
+	launder_loop = 0;	//控制扫描不活跃“脏”页面队列的次数。
 	maxlaunder = 0;
 	cleaned_pages = 0;	//累计被“清洗”的页面数量。
 
@@ -855,9 +855,10 @@ int inactive_shortage(void)
 	 */
 	int shortage = 0;
 
+	//freepages.high + inactive_target 为当前潜在的页面供应量。
 	shortage += freepages.high;		//空闲页面数量。
-	shortage += inactive_target;	//不活跃页面的数量。
-	shortage -= nr_free_pages();	//当前尚存的空闲页面。
+	shortage += inactive_target;		//不活跃页面的数量。
+	shortage -= nr_free_pages();		//当前尚存的空闲页面。
 	shortage -= nr_inactive_clean_pages();	//现有不活跃“干净”页面。
 	shortage -= nr_inactive_dirty_pages;	//现有不活跃“脏”页面。
 
@@ -958,6 +959,9 @@ done:
 
 static int do_try_to_free_pages(unsigned int gfp_mask, int user)
 {
+	/*
+	 * 尝试释放和换出一些页面。
+	 */
 	int ret = 0;
 
 	/*
@@ -1041,6 +1045,7 @@ int kswapd(void *unused)
 		static int recalc = 0;
 
 		/* If needed, try to free some memory. */
+		//首先检查内存中可供分配或周转的物理页面是否短缺。
 		if (inactive_shortage() || free_shortage()) {
 			int wait = 0;
 			/* Do we need to do some synchronous flushing? */

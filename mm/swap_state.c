@@ -233,9 +233,11 @@ struct page * read_swap_cache_async(swp_entry_t entry, int wait)
 	if (found_page)
 		goto out_free_swap;
 
+	//new_page_addr指新分配的页面的虚拟地址。
 	new_page_addr = __get_free_page(GFP_USER);
 	if (!new_page_addr)
 		goto out_free_swap;	/* Out of memory */
+	//new_page是page结构的指针。通过虚拟地址反推page结构的地址。
 	new_page = virt_to_page(new_page_addr);
 
 	/*
